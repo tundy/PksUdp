@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PksUdp", "PksUdp\PksUdp.csproj", "{5DF72F3E-4663-424D-AE08-9A7A50D2E333}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PksGui", "PksGui\PksGui.csproj", "{93E2710E-0101-4A79-BB1B-45AEC49A3C42}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5DF72F3E-4663-424D-AE08-9A7A50D2E333}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5DF72F3E-4663-424D-AE08-9A7A50D2E333}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5DF72F3E-4663-424D-AE08-9A7A50D2E333}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5DF72F3E-4663-424D-AE08-9A7A50D2E333}.Release|Any CPU.Build.0 = Release|Any CPU
+		{93E2710E-0101-4A79-BB1B-45AEC49A3C42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93E2710E-0101-4A79-BB1B-45AEC49A3C42}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93E2710E-0101-4A79-BB1B-45AEC49A3C42}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93E2710E-0101-4A79-BB1B-45AEC49A3C42}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
