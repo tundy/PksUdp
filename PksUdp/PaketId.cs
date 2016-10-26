@@ -8,7 +8,7 @@ namespace PksUdp
         public readonly int UnixTime;
         public readonly byte Id;
 
-        protected bool Equals(PaketId other)
+        internal bool Equals(PaketId other)
         {
             return UnixTime == other.UnixTime && Id == other.Id;
         }

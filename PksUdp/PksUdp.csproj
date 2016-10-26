@@ -42,10 +42,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ClientThread.cs" />
+    <Compile Include="FileFragments.cs" />
+    <Compile Include="MessageFragments.cs" />
+    <Compile Include="PaketFragments.cs" />
     <Compile Include="PaketId.cs" />
     <Compile Include="PksClient.cs" />
     <Compile Include="PksServer.cs" />
-    <Compile Include="Events.cs" />
+    <Compile Include="ClientEvents.cs" />
+    <Compile Include="ServerEvents.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="FilePacket.cs" />
     <Compile Include="Message.cs" />

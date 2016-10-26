@@ -8,6 +8,16 @@ namespace PksUdp
 {
     internal static class Extensions
     {
+        internal static byte[] ConnectedPaket()
+        {
+            var data = new byte[5];
+            data[0] = 0x7E;
+            data[4] = 0x7E;
+            data.SetPaketType(Type.Connect);
+            data.CreateChecksum();
+            return data;
+        }
+
         private const int FragmentTypeIndex = 1;
         private const int FragmentIdIndex = 2;
         private const int FragmentOrderIndex = 7;
@@ -120,6 +130,9 @@ namespace PksUdp
             data[data.Length - 2] = (byte)crc;
             data[data.Length - 3] = (byte)(crc >> 8);
         }
+
+        public static bool CheckChecksum(this byte[] data) => data.CompareChecksum(data.CalculateChecksum());
+
         /// <summary>
         /// Returns if checksums in byte array is same as expected checksum.
         /// </summary>

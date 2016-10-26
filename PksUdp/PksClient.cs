@@ -9,8 +9,9 @@ using System.Threading.Tasks;
 
 namespace PksUdp
 {
-    public class PksClient
+    public partial class PksClient
     {
+        internal PaketFragments lastMessage = null;
 
         /// <summary>
         /// Local (Listener) UDP Socket.
@@ -75,13 +76,13 @@ namespace PksUdp
                 Socket?.Close();
                 throw;
             }
-            /*_thread = new Thread(new ClientThread(this).Loop)
+            _thread = new Thread(new ClientThread(this).Loop)
             {
                 IsBackground = true,
-                Name = $"UdpServer {Port}",
+                Name = $"UdpClient {Port}",
                 Priority = ThreadPriority.AboveNormal
             };
-            _thread.Start();*/
+            _thread.Start();
         }
 
         /// <summary>

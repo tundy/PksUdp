@@ -19,8 +19,8 @@ namespace PksUdp
             data[0] = 0x7E;
             data[13] = 0x7E;
             data.SetPaketType(type);
-            data.SetFragmentOrder(fragmentOrder);
             data.SetFragmentId(id);
+            data.SetFragmentOrder(fragmentOrder);
             data.CreateChecksum();
             return data;
         }
@@ -29,9 +29,9 @@ namespace PksUdp
         internal static byte[] SuccessPaket(PaketId id, uint fragmentCount) => CreateFragment(Extensions.Type.SuccessFull, id, fragmentCount);
         internal static byte[] PingPaket()
         {
-            var data = new byte[14];
+            var data = new byte[5];
             data[0] = 0x7E;
-            data[13] = 0x7E;
+            data[4] = 0x7E;
             data.SetPaketType(Extensions.Type.Ping);
             data.CreateChecksum();
             return data;

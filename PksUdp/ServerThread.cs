@@ -269,15 +269,19 @@ namespace PksUdp
         {
             lock (_clientLock)
             {
+                if (type == Extensions.Type.Connect)
+                {
+                    var data = Extensions.ConnectedPaket();
+                    _pksServer.Socket.SendAsync(data, data.Length, client);
+                    _pksServer.Socket.SendAsync(data, data.Length, client);
+                    _connected = true;
+                    ResetCounter();
+                    _pksServer.OnClientConnected(client);
+                    return true;
+                }
+
                 if (!_connected)
                 {
-                    if (type == Extensions.Type.Connect)
-                    {
-                        _connected = true;
-                        ResetCounter();
-                        _pksServer.OnClientConnected(client);
-                        return true;
-                    }
                     _client = null;
                     return true;
                 }
@@ -327,7 +331,7 @@ namespace PksUdp
                 return false;
             }
 
-            return bytes.CompareChecksum(bytes.CalculateChecksum());
+            return bytes.CheckChecksum();
         }
 
         /// <summary>
