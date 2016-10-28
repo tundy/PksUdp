@@ -32,13 +32,13 @@ namespace PksGui
         {
             InitializeComponent();
 
-            _pksServer = new PksServer(35555);
+            /*_pksServer = new PksServer(35555);
             _pksServer.ClientConnected += PksServerClientConnected;
             _pksServer.ClientDisconnected += PksServerClientDisconnected;
             _pksServer.ClientTimedOut += PksServerClientTimedOud;
-            _pksServer.ReceivedMessage += PksServerReceivedMessage;
+            _pksServer.ReceivedMessage += PksServerReceivedMessage;*/
         }
-
+        /*
         private void PksServerReceivedMessage(System.Net.IPEndPoint endPoint, Message message)
         {
             Output.Dispatcher.Invoke(() => {
@@ -63,6 +63,6 @@ namespace PksGui
         private void PksServerClientTimedOud(System.Net.IPEndPoint endPoint)
         {
             Output.Dispatcher.Invoke(() => { Output.AppendText($"({endPoint}) {DateTime.Now}: Client Timedout{Environment.NewLine}"); });
-        }
+        }*/
     }
 }

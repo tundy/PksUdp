@@ -7,6 +7,61 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="350" Width="525">
     <Grid>
-        <TextBox x:Name="Output" VerticalScrollBarVisibility="Visible" x:FieldModifier="private"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
+        <WrapPanel Grid.Row="0">
+            <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
+                <WrapPanel Name="PortPanel" x:FieldModifier="private" VerticalAlignment="Center">
+                    <TextBlock Margin="5" Text="Tvoj port:"/>
+                    <TextBox Margin="5" HorizontalContentAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" MaxLength="5" MinWidth="38"/>
+                </WrapPanel>
+            </Border>
+            <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
+                <WrapPanel Name="ControlsPanel" x:FieldModifier="private" VerticalAlignment="Center">
+                    <Button Margin="5" Name="StartServerButton" x:FieldModifier="private" Content="Spusti server" VerticalContentAlignment="Center"/>
+                    <Button Margin="5" Name="ConnectButton" x:FieldModifier="private" Content="Pripojit" VerticalContentAlignment="Center"/>
+                    <Button Margin="5" IsEnabled="False" Name="StopButton" x:FieldModifier="private" Content="Odpojit" VerticalContentAlignment="Center"/>
+                </WrapPanel>
+            </Border>
+            <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
+                <WrapPanel Name="EndPointPanel" x:FieldModifier="private" VerticalAlignment="Center">
+                    <TextBlock Margin="5" Text="Ip:"/>
+                    <TextBox Margin="5" HorizontalContentAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" MaxLength="15" MinWidth="91"/>
+                    <TextBlock Margin="5" Text="Port:"/>
+                    <TextBox Margin="5" HorizontalContentAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" MaxLength="5" MinWidth="38"/>
+                </WrapPanel>
+            </Border>
+            <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
+                <WrapPanel IsEnabled="False" Name="FragmentPanel" x:FieldModifier="private">
+                    <TextBlock Margin="5" Text="Velkost fragmentu:"/>
+                    <TextBox Margin="5" HorizontalContentAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" MaxLength="5" Text="1000" MinWidth="38"/>
+                </WrapPanel>
+            </Border>
+        </WrapPanel>
+        <Border Grid.Row="1" BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
+            <TextBox IsReadOnly="True" HorizontalScrollBarVisibility="Auto" TextWrapping="WrapWithOverflow" VerticalScrollBarVisibility="Visible"/>
+        </Border>
+        <StackPanel Grid.Row="2" Orientation="Vertical" IsEnabled="False">
+            <DockPanel>
+                <Grid DockPanel.Dock="Right">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
+                    </Grid.RowDefinitions>
+                    <CheckBox Grid.Row="1" Margin="5" Content="Chybny fragment" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+                    <Button Grid.Row="2" Content="Odoslat spravu" Margin="5" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+                </Grid>
+                <TextBox AcceptsReturn="True" MaxHeight="150" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible" Margin="5" DockPanel.Dock="Left" VerticalAlignment="Stretch" VerticalContentAlignment="Top" SpellCheck.IsEnabled="True"/>
+            </DockPanel>
+            <DockPanel>
+                <Button Content="Odoslat subor" Margin="5" DockPanel.Dock="Right" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+                <Button Content="Vybrat subor" Margin="5" DockPanel.Dock="Right" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+                <TextBox Margin="5" DockPanel.Dock="Left" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+            </DockPanel>
+        </StackPanel>
     </Grid>
 </Window>
