@@ -38,7 +38,15 @@ namespace PksUdp
 
         private void _connectionTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            // ToDo: ping;
+            var data = Extensions.PingPaket();
+            try
+            {
+                _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
+            }
+            catch (Exception)
+            {
+                _pksClient.OnServerTimedOut();
+            }
         }
 
         private void _recieveTimer_Elapsed(object sender, ElapsedEventArgs e)
@@ -55,6 +63,8 @@ namespace PksUdp
             var data = Extensions.ConnectedPaket();
             _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
 
+            var rcv = _pksClient.endPoint;
+
             // Here will be saved information about UDP sender.
             for (;;)
             {
@@ -63,13 +73,20 @@ namespace PksUdp
                     _connectionTimer.Start();
                     _recieveTimer.Start();
 
-                    var bytes = new byte[30];
-                    var count = _pksClient.Socket.Client.Receive(bytes);
+                    var bytes = _pksClient.Socket.Receive(ref rcv);
+
+                    if (_connected)
+                    {
+                        if (!rcv.Equals(_pksClient.endPoint))
+                        {
+                            continue;
+                        }
+                    }
 
                     _recieveTimer.Stop();
                     _connectionTimer.Stop();
 
-                    DecodePaket(bytes, count);
+                    DecodePaket(bytes, rcv);
                 }
                 catch (ThreadAbortException)
                 {
@@ -88,23 +105,19 @@ namespace PksUdp
                 catch (SocketException ex)
                 {
                     // ConnectionReset = An existing connection was forcibly closed by the remote host
-                    if (ex.SocketErrorCode == SocketError.ConnectionReset || ex.SocketErrorCode == SocketError.TimedOut)
-                    {
-                        _pksClient.OnServerTimedOut();
-                    }
-                    else
-                    {
+                    if (ex.SocketErrorCode != SocketError.ConnectionReset && ex.SocketErrorCode != SocketError.TimedOut)
                         throw;
-                    }
+                    _pksClient.OnServerTimedOut();
+                    return;
                 }
             }
         }
 
         private bool _secondTry;
 
-        private void DecodePaket(byte[] bytes, int count)
+        private void DecodePaket(byte[] bytes, IPEndPoint count)
         {
-            if (CheckFragment(bytes, count)) return;
+            if (CheckFragment(bytes)) return;
 
             Extensions.Type type;
             try
@@ -135,7 +148,7 @@ namespace PksUdp
                 case Extensions.Type.Ping:
                     return;
                 case Extensions.Type.RetryFragment:
-                    ResendFragments(bytes, count);
+                    ResendFragments(bytes);
                     return;
                 case Extensions.Type.SuccessFull:
                     _pksClient.OnReceivedMessage(_pksClient.lastMessage.PaketId, true);
@@ -150,14 +163,14 @@ namespace PksUdp
             }
         }
 
-        private static bool CheckFragment(byte[] bytes, int count)
+        private static bool CheckFragment(byte[] bytes)
         {
-            return WrongProtocol(bytes, count) || !bytes.CheckChecksum();
+            return WrongProtocol(bytes) || !bytes.CheckChecksum();
         }
 
-        private void ResendFragments(byte[] bytes, int count)
+        private void ResendFragments(byte[] bytes)
         {
-            if (count < 14)
+            if (bytes.Length < 14)
                 return;
 
             var order = bytes.GetFragmentOrder();
@@ -187,14 +200,14 @@ namespace PksUdp
             throw new NotImplementedException();
         }
 
-        private static bool WrongProtocol(byte[] bytes, int count)
+        private static bool WrongProtocol(byte[] bytes)
         {
-            if (count < 5)
+            if (bytes.Length < 5)
             {
                 return true;
             }
 
-            if (bytes[0] != 0x7E && bytes[count - 1] != 0x7E)
+            if (bytes[0] != 0x7E && bytes[bytes.Length - 1] != 0x7E)
             {
                 return true;
             }

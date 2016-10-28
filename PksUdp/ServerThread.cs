@@ -90,9 +90,9 @@ namespace PksUdp
                     return;
                 }
 
+                var data = Extensions.PingPaket();
                 try
                 {
-                    var data = PksServer.PingPaket();
                     _pksServer.Socket.Send(data, data.Length, _client);
                 }
                 catch (Exception)
@@ -203,6 +203,11 @@ namespace PksUdp
                     }
                     _lastFragmentType = type;
 
+                    if (type == Extensions.Type.Ping)
+                    {
+                        continue;
+                    }
+
                     var id = bytes.GetFragmentId();
                     if (_lastId != null && _lastId != id)
                     {
@@ -212,9 +217,6 @@ namespace PksUdp
 
                     switch (type)
                     {
-                        case Extensions.Type.Ping:
-                            _lastFragmentType = Extensions.Type.Nothing;
-                            break;
                         case Extensions.Type.Message:
                             SpracujSpravu(bytes, id, sender);
                             break;

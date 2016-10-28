@@ -8,6 +8,16 @@ namespace PksUdp
 {
     internal static class Extensions
     {
+        internal static byte[] PingPaket()
+        {
+            var data = new byte[5];
+            data[0] = 0x7E;
+            data[4] = 0x7E;
+            data.SetPaketType(Extensions.Type.Ping);
+            data.CreateChecksum();
+            return data;
+        }
+
         internal static byte[] ConnectedPaket()
         {
             var data = new byte[5];
