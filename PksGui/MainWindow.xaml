@@ -40,6 +40,9 @@
                     <TextBox IsEnabled="False" x:Name="FragmentSize" x:FieldModifier="private" local:Masking.Mask="^[0-9]*$" Margin="5" HorizontalContentAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" MaxLength="5" Text="1000" MinWidth="38"/>
                 </WrapPanel>
             </Border>
+            <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
+                <Button Margin="5" Content="Zmaz vystup" Click="Button_Click"/>
+            </Border>
         </WrapPanel>
         <Border Grid.Row="1" BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
             <TextBox x:Name="Output" IsReadOnly="True" HorizontalScrollBarVisibility="Auto" TextWrapping="WrapWithOverflow" VerticalScrollBarVisibility="Visible"/>

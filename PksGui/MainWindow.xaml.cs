@@ -25,7 +25,7 @@ namespace PksGui
     {
         private readonly PksServer _pksServer;
         private readonly PksClient _pksClient;
-        private bool lastStateServer;
+        private bool _lastStateServer;
 
         ~MainWindow()
         {
@@ -54,7 +54,7 @@ namespace PksGui
             Dispatcher.Invoke(() =>
             {
                 Output.AppendText($"{DateTime.Now}: Server zrusil spojenie{Environment.NewLine}");
-                if (!lastStateServer)
+                if (!_lastStateServer)
                     ResetControls();
             });
         }
@@ -64,7 +64,7 @@ namespace PksGui
             Dispatcher.Invoke(() =>
             {
                 Output.AppendText($"{DateTime.Now}: Server Timedout{Environment.NewLine}");
-                if(!lastStateServer)
+                if(!_lastStateServer)
                     ResetControls();
             });
         }
@@ -115,7 +115,7 @@ namespace PksGui
         {
             ResetControls();
 
-            if (lastStateServer)
+            if (_lastStateServer)
             {
                 Output.AppendText($"Server sa ukoncil.{Environment.NewLine}");
                 _pksServer.Close();
@@ -141,6 +141,10 @@ namespace PksGui
 
         private void ServerStart_ButtonClick(object sender, RoutedEventArgs e)
         {
+            if(!_lastStateServer)
+                Output.Clear();
+            _lastStateServer = true;
+
             ushort port;
             if (!ushort.TryParse(ThisPort.Text, out port))
             {
@@ -159,7 +163,6 @@ namespace PksGui
             }
             Output.AppendText($"Uspesne spustenie server na porte {port}.{Environment.NewLine}");
             Title = $"Server - {port}";
-            lastStateServer = true;
             StartServerButton.IsEnabled = false;
             ConnectButton.IsEnabled = false;
             StopButton.IsEnabled = true;
@@ -169,6 +172,9 @@ namespace PksGui
 
         private void Connect_ButtonClick(object sender, RoutedEventArgs e)
         {
+            if (_lastStateServer)
+                Output.Clear();
+            _lastStateServer = false;
 
             ushort port;
             if (!ushort.TryParse(ThisPort.Text, out port))
@@ -211,7 +217,6 @@ namespace PksGui
 
             Output.AppendText($"Pokusam sa pripojit na {ip}:{portServer}.{Environment.NewLine}");
             Title = $"Klient - {ip}:{portServer}";
-            lastStateServer = false;
             StartServerButton.IsEnabled = false;
             ConnectButton.IsEnabled = false;
             StopButton.IsEnabled = true;
@@ -220,6 +225,11 @@ namespace PksGui
             FragmentSize.IsEnabled = true;
 
             _pksClient.Connect(ip, portServer);
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            Output.Clear();
         }
     }
 
