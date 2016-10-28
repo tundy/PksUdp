@@ -38,17 +38,23 @@ namespace PksUdp
 
         private void _connectionTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            throw new NotImplementedException();
+            // ToDo: ping;
         }
 
         private void _recieveTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            throw new NotImplementedException();
+            if (_pksClient.lastMessage == null) return;
+            _pksClient.OnReceivedMessage(_pksClient.lastMessage.PaketId, false);
+            _pksClient.lastMessage = null;
         }
 
 
         internal void Loop()
         {
+            _pksClient.Socket.Connect(_pksClient.endPoint);
+            var data = Extensions.ConnectedPaket();
+            _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
+
             // Here will be saved information about UDP sender.
             for (;;)
             {
@@ -67,8 +73,16 @@ namespace PksUdp
                 }
                 catch (ThreadAbortException)
                 {
-                    if(_pksClient.Socket.Client.Connected)
+                    if (_pksClient.Socket.Client == null || !_pksClient.Socket.Client.Connected) return;
+                    try
+                    {
+                        data = Extensions.DisconnectedPaket();
+                        _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
+                    }
+                    finally 
+                    {
                         _pksClient.Socket.Client.Disconnect(true);
+                    }
                     return;
                 }
                 catch (SocketException ex)

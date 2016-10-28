@@ -18,6 +18,16 @@ namespace PksUdp
             return data;
         }
 
+        internal static byte[] DisconnectedPaket()
+        {
+            var data = new byte[5];
+            data[0] = 0x7E;
+            data[4] = 0x7E;
+            data.SetPaketType(Type.Disconnect);
+            data.CreateChecksum();
+            return data;
+        }
+
         private const int FragmentTypeIndex = 1;
         private const int FragmentIdIndex = 2;
         private const int FragmentOrderIndex = 7;

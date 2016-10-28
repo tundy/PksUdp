@@ -275,6 +275,7 @@ namespace PksUdp
                     _pksServer.Socket.SendAsync(data, data.Length, client);
                     _pksServer.Socket.SendAsync(data, data.Length, client);
                     _connected = true;
+                    _client = client;
                     ResetCounter();
                     _pksServer.OnClientConnected(client);
                     return true;
@@ -282,7 +283,6 @@ namespace PksUdp
 
                 if (!_connected)
                 {
-                    _client = null;
                     return true;
                 }
 
@@ -303,11 +303,7 @@ namespace PksUdp
         {
             lock (_clientLock)
             {
-                if (_client == null)
-                {
-                    _client = new IPEndPoint(sender.Address, sender.Port);
-                }
-                else if (!_client.Address.Equals(sender.Address) || !_client.Port.Equals(sender.Port))
+                if (_client != null && (!_client.Address.Equals(sender.Address) || !_client.Port.Equals(sender.Port)))
                 {
                     return true;
                 }
@@ -321,7 +317,7 @@ namespace PksUdp
         /// <param name="bytes">fragment</param>
         private static bool IsFragmentCorrect(byte[] bytes)
         {
-            if (bytes.Length < 10)
+            if (bytes.Length < 5)
             {
                 return false;
             }

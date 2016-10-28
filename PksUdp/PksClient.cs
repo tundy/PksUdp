@@ -22,6 +22,7 @@ namespace PksUdp
         /// </summary>
         private Thread _thread;
 
+        private int? _lastPort;
         /// <summary>
         /// Local (Listener) Port.
         /// </summary>
@@ -29,15 +30,16 @@ namespace PksUdp
         /// <exception cref="SocketException"/>
         public int? Port
         {
-            get { return ((IPEndPoint)Socket?.Client.LocalEndPoint)?.Port; }
+            get { return ((IPEndPoint)Socket?.Client?.LocalEndPoint)?.Port; }
             set
             {
-                if (!value.HasValue)
-                    return;
                 Close();
-                Init(value.Value);
+                _lastPort = value;
+                Init();
             }
         }
+
+        internal IPEndPoint endPoint;
 
         /// <summary>
         /// Create communicator.
@@ -53,9 +55,41 @@ namespace PksUdp
         /// <exception cref="ThreadStartException"/>
         /// <exception cref="OutOfMemoryException"/>
         /// <param name="port">Port that will be used for communication.</param>
-        public PksClient(int port) : this()
+        public PksClient(int? port) : this()
         {
-            Init(port);
+            Port = port;
+        }
+
+        public void Connect(string ip, int port)
+        {
+            endPoint = new IPEndPoint(IPAddress.Parse(ip), port);
+            Connect();
+        }
+
+        public void Connect(IPAddress ip, int port)
+        {
+            endPoint = new IPEndPoint(ip, port);
+            Connect();
+        }
+
+        private void Connect()
+        {
+            Close();
+            Init();
+
+            _thread = new Thread(new ClientThread(this).Loop)
+            {
+                IsBackground = true,
+                Name = $"UdpClient {Port} - {endPoint}",
+                Priority = ThreadPriority.AboveNormal
+            };
+            _thread.Start();
+        }
+
+        public void Connect(IPEndPoint endPoint)
+        {
+            this.endPoint = endPoint;
+            Connect();
         }
 
         /// <summary>
@@ -65,24 +99,23 @@ namespace PksUdp
         /// <exception cref="ThreadStartException"/>
         /// <exception cref="OutOfMemoryException"/>
         /// <param name="port">Port that will be used for communication.</param>
-        private void Init(int port)
+        private void Init()
         {
+            if (!_lastPort.HasValue)
+            {
+                Socket = new UdpClient();
+                return;
+            }
+
             try
             {
-                Socket = new UdpClient(port) { Client = { SendTimeout = 5000, ReceiveTimeout = 50000 } };
+                Socket = new UdpClient(_lastPort.Value) { Client = { SendTimeout = 5000, ReceiveTimeout = 50000 } };
             }
             catch (SocketException)
             {
                 Socket?.Close();
                 throw;
             }
-            _thread = new Thread(new ClientThread(this).Loop)
-            {
-                IsBackground = true,
-                Name = $"UdpClient {Port}",
-                Priority = ThreadPriority.AboveNormal
-            };
-            _thread.Start();
         }
 
         /// <summary>
