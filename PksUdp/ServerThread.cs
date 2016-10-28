@@ -58,10 +58,6 @@ namespace PksUdp
         private PaketId _lastId;
 
         /// <summary>
-        /// Timer pre kontrolu spojenia.
-        /// </summary>
-        private readonly System.Timers.Timer _connectionTimer = new System.Timers.Timer {Interval = 45000, AutoReset = false};
-        /// <summary>
         /// Timer pre znovu vyziadanie fragmentov.
         /// </summary>
         private readonly System.Timers.Timer _recieveTimer = new System.Timers.Timer { Interval = 500, AutoReset = false};
@@ -70,12 +66,6 @@ namespace PksUdp
         {
             _pksServer = pksServer;
             _recieveTimer.Elapsed += _recieveTimer_Elapsed;
-            _connectionTimer.Elapsed += _connectionTimer_Elapsed;
-        }
-
-        private void _connectionTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            PingClient();
         }
 
         /// <summary>
@@ -168,7 +158,6 @@ namespace PksUdp
             {
                 try
                 {
-                    _connectionTimer.Start();
                     _recieveTimer.Start();
 
                     var bytes = _pksServer.Socket.Receive(ref sender);
@@ -179,7 +168,6 @@ namespace PksUdp
                     }
 
                     _recieveTimer.Stop();
-                    _connectionTimer.Stop();
 
                     if (!IsFragmentCorrect(bytes))
                     {
@@ -244,9 +232,9 @@ namespace PksUdp
                             {
                                 continue;
                             }
-                            _client = null;
+
                         }
-                        _pksServer.OnClientTimedOut(sender);
+                        PingClient();
                     }
                     else
                     {

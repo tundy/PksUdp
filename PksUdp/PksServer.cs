@@ -87,7 +87,7 @@ namespace PksUdp
         {
             try
             {
-                Socket = new UdpClient(port) {Client = {SendTimeout = 5000, ReceiveTimeout = 50000}};
+                Socket = new UdpClient(port) {Client = {SendTimeout = 5000, ReceiveTimeout = 45000}};
             }
             catch (SocketException)
             {

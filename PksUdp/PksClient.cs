@@ -109,7 +109,7 @@ namespace PksUdp
 
             try
             {
-                Socket = new UdpClient(_lastPort.Value) { Client = { SendTimeout = 5000, ReceiveTimeout = 50000 } };
+                Socket = new UdpClient(_lastPort.Value) { Client = { SendTimeout = 5000, ReceiveTimeout = 45000 } };
             }
             catch (SocketException)
             {
@@ -125,7 +125,8 @@ namespace PksUdp
         /// <exception cref="SocketException"/>
         public void Close()
         {
-            _thread?.Abort();
+            if(_thread != null && _thread.IsAlive)
+                _thread.Abort();
             Socket?.Close();
         }
     }

@@ -16,15 +16,6 @@ namespace PksUdp
         private bool _connected = false;
 
         /// <summary>
-        /// Timer pre kontrolu spojenia.
-        /// </summary>
-        private readonly System.Timers.Timer _connectionTimer = new System.Timers.Timer
-        {
-            Interval = 45000,
-            AutoReset = false
-        };
-
-        /// <summary>
         /// Timer pre znovu vyziadanie fragmentov.
         /// </summary>
         private readonly System.Timers.Timer _recieveTimer = new System.Timers.Timer {Interval = 500, AutoReset = false};
@@ -33,10 +24,9 @@ namespace PksUdp
         {
             _pksClient = pksClient;
             _recieveTimer.Elapsed += _recieveTimer_Elapsed;
-            _connectionTimer.Elapsed += _connectionTimer_Elapsed;
         }
 
-        private void _connectionTimer_Elapsed(object sender, ElapsedEventArgs e)
+        private void Ping()
         {
             var data = Extensions.PingPaket();
             try
@@ -70,7 +60,6 @@ namespace PksUdp
             {
                 try
                 {
-                    _connectionTimer.Start();
                     _recieveTimer.Start();
 
                     var bytes = _pksClient.Socket.Receive(ref rcv);
@@ -84,7 +73,6 @@ namespace PksUdp
                     }
 
                     _recieveTimer.Stop();
-                    _connectionTimer.Stop();
 
                     DecodePaket(bytes, rcv);
                 }
@@ -104,10 +92,11 @@ namespace PksUdp
                 }
                 catch (SocketException ex)
                 {
+                    if(ex.SocketErrorCode != SocketError.TimedOut)
+                        Ping();
                     // ConnectionReset = An existing connection was forcibly closed by the remote host
-                    if (ex.SocketErrorCode != SocketError.ConnectionReset && ex.SocketErrorCode != SocketError.TimedOut)
+                    else if (ex.SocketErrorCode != SocketError.ConnectionReset)
                         throw;
-                    _pksClient.OnServerTimedOut();
                     return;
                 }
             }
