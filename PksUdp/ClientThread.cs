@@ -19,24 +19,24 @@ namespace PksUdp
         /// Timer pre znovu vyziadanie fragmentov.
         /// </summary>
         private readonly System.Timers.Timer _recieveTimer = new System.Timers.Timer {Interval = 500, AutoReset = false};
+        private readonly System.Timers.Timer _pingTimer = new System.Timers.Timer {Interval = 30000, AutoReset = true};
 
         public ClientThread(PksClient pksClient)
         {
             _pksClient = pksClient;
             _recieveTimer.Elapsed += _recieveTimer_Elapsed;
+            _pingTimer.Elapsed += _pingTimer_Elapsed; ;
+        }
+
+        private void _pingTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            Ping();
         }
 
         private void Ping()
         {
             var data = Extensions.PingPaket();
-            try
-            {
-                _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
-            }
-            catch (Exception)
-            {
-                _pksClient.OnServerTimedOut();
-            }
+            _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
         }
 
         private void _recieveTimer_Elapsed(object sender, ElapsedEventArgs e)
@@ -52,7 +52,7 @@ namespace PksUdp
             _pksClient.Socket.Connect(_pksClient.endPoint);
             var data = Extensions.ConnectedPaket();
             _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
-
+            _pingTimer.Start();
             var rcv = _pksClient.endPoint;
 
             // Here will be saved information about UDP sender.
@@ -92,11 +92,18 @@ namespace PksUdp
                 }
                 catch (SocketException ex)
                 {
-                    if(ex.SocketErrorCode == SocketError.TimedOut)
-                        Ping();
-                    // ConnectionReset = An existing connection was forcibly closed by the remote host
-                    else if (ex.SocketErrorCode != SocketError.ConnectionReset)
-                        throw;
+                    switch (ex.SocketErrorCode)
+                    {
+                        case SocketError.TimedOut:
+                            _pksClient.OnServerTimedOut();
+                            return;
+                        // ConnectionReset = An existing connection was forcibly closed by the remote host
+                        case SocketError.ConnectionReset:
+                            _pksClient.OnServerClosedConnection();
+                            return;
+                        default:
+                            throw;
+                    }
                 }
             }
         }

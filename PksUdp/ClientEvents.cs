@@ -31,5 +31,12 @@ namespace PksUdp
             ServerTimedOut?.Invoke();
             Close();
         }
+
+        public event ServerHandler ServerClosedConnection;
+        internal virtual void OnServerClosedConnection()
+        {
+            ServerClosedConnection?.Invoke();
+            Close();
+        }
     }
 }

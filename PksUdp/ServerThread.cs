@@ -32,10 +32,16 @@ namespace PksUdp
         /// Bol klient uspense pripojeny.
         /// </summary>
         private bool _connected;
+
         /// <summary>
         /// Udaje o klientovi.
         /// </summary>
-        private IPEndPoint _client;
+        private IPEndPoint Client
+        {
+            get { return _client; }
+            set { _pingTimer.Stop(); _client = value; if(value != null) _pingTimer.Start(); }
+        }
+
         /// <summary>
         /// Posledny typ spravy.
         /// </summary>
@@ -61,11 +67,19 @@ namespace PksUdp
         /// Timer pre znovu vyziadanie fragmentov.
         /// </summary>
         private readonly System.Timers.Timer _recieveTimer = new System.Timers.Timer { Interval = 500, AutoReset = false};
+        private readonly System.Timers.Timer _pingTimer = new System.Timers.Timer { Interval = 30000, AutoReset = true};
+        private IPEndPoint _client;
 
         internal ServerThread(PksServer pksServer)
         {
             _pksServer = pksServer;
             _recieveTimer.Elapsed += _recieveTimer_Elapsed;
+            _pingTimer.Elapsed += _pingTimer_Elapsed; ;
+        }
+
+        private void _pingTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            PingClient();
         }
 
         /// <summary>
@@ -75,21 +89,13 @@ namespace PksUdp
         {
             lock (_clientLock)
             {
-                if (_client == null)
+                if (Client == null)
                 {
                     return;
                 }
 
                 var data = Extensions.PingPaket();
-                try
-                {
-                    _pksServer.Socket.Send(data, data.Length, _client);
-                }
-                catch (Exception)
-                {
-                    _pksServer.OnClientTimedOut(_client);
-                    _client = null;
-                }
+                _pksServer.Socket.Send(data, data.Length, Client);
             }
         }
 
@@ -100,7 +106,7 @@ namespace PksUdp
                 AskForFragments();
                 return;
             }
-            PaketFailed((uint) _fragmentCount, _lastId, _client);
+            PaketFailed((uint) _fragmentCount, _lastId, Client);
         }
 
         /// <summary>
@@ -117,7 +123,7 @@ namespace PksUdp
 
             lock (_clientLock)
             {
-                if (_client == null)
+                if (Client == null)
                 {
                     return;
                 }
@@ -127,7 +133,7 @@ namespace PksUdp
                     if (_fragments.LongCount() == 0 || _fragmentCount == -1)
                     {
                         var data = PksServer.RetryPaket();
-                        sendList.Add(_pksServer.Socket.SendAsync(data, data.Length, _client));
+                        sendList.Add(_pksServer.Socket.SendAsync(data, data.Length, Client));
                     }
                     else
                     {
@@ -136,7 +142,7 @@ namespace PksUdp
                         {
                             if (_fragments.ContainsKey((uint) i)) continue;
                             var data = PksServer.RetryFragment(_lastId, (uint)i);
-                            sendList.Add(_pksServer.Socket.SendAsync(data, data.Length, _client));
+                            sendList.Add(_pksServer.Socket.SendAsync(data, data.Length, Client));
                             --missing;
                         }
                     }
@@ -228,13 +234,14 @@ namespace PksUdp
                     {
                         lock (_clientLock)
                         {
-                            if (_client == null)
+                            if (Client == null)
                             {
                                 continue;
                             }
+                            Client = null;
 
                         }
-                        PingClient();
+                        _pksServer.OnClientTimedOut(sender);
                     }
                     else
                     {
@@ -265,7 +272,7 @@ namespace PksUdp
                     _pksServer.Socket.SendAsync(data, data.Length, client);
                     _pksServer.Socket.SendAsync(data, data.Length, client);
                     _connected = true;
-                    _client = client;
+                    Client = client;
                     ResetCounter();
                     _pksServer.OnClientConnected(client);
                     return true;
@@ -279,7 +286,7 @@ namespace PksUdp
                 if (type != Extensions.Type.Disconnect) return false;
 
                 _pksServer.OnClientDisconnected(client);
-                _client = null;
+                Client = null;
                 _connected = false;
                 return true;
             }
@@ -293,7 +300,7 @@ namespace PksUdp
         {
             lock (_clientLock)
             {
-                if (_client != null && (!_client.Address.Equals(sender.Address) || !_client.Port.Equals(sender.Port)))
+                if (Client != null && (!Client.Address.Equals(sender.Address) || !Client.Port.Equals(sender.Port)))
                 {
                     return true;
                 }

@@ -46,6 +46,17 @@ namespace PksGui
             _pksClient.ClientConnected += _pksClient_ClientConnected;
             _pksClient.ReceivedMessage += _pksClient_ReceivedMessage;
             _pksClient.ServerTimedOut += _pksClient_ServerTimedOut;
+            _pksClient.ServerClosedConnection += PksClientServerClosedConnection; ;
+        }
+
+        private void PksClientServerClosedConnection()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Output.AppendText($"{DateTime.Now}: Server zrusil spojenie{Environment.NewLine}");
+                if (!lastStateServer)
+                    ResetControls();
+            });
         }
 
         private void _pksClient_ServerTimedOut()
@@ -54,7 +65,7 @@ namespace PksGui
             {
                 Output.AppendText($"{DateTime.Now}: Server Timedout{Environment.NewLine}");
                 if(!lastStateServer)
-                    Close();
+                    ResetControls();
             });
         }
 
@@ -102,13 +113,7 @@ namespace PksGui
 
         private void Disconnect_ButtonClick(object sender, RoutedEventArgs e)
         {
-            Title = "Komunikator";
-
-            StartServerButton.IsEnabled = true;
-            ConnectButton.IsEnabled = true;
-            StopButton.IsEnabled = false;
-            ThisPort.IsEnabled = true;
-            EndPointPanel.IsEnabled = true;
+            ResetControls();
 
             if (lastStateServer)
             {
@@ -117,11 +122,21 @@ namespace PksGui
             }
             else
             {
-                FragmentSize.IsEnabled = false;
-                InputPanel.IsEnabled = false;
                 Output.AppendText($"Klient sa odpojil od servera.{Environment.NewLine}");
                 _pksClient.Close();
             }
+        }
+
+        private void ResetControls()
+        {
+            Title = "Komunikator";
+            StartServerButton.IsEnabled = true;
+            ConnectButton.IsEnabled = true;
+            StopButton.IsEnabled = false;
+            ThisPort.IsEnabled = true;
+            EndPointPanel.IsEnabled = true;
+            FragmentSize.IsEnabled = false;
+            InputPanel.IsEnabled = false;
         }
 
         private void ServerStart_ButtonClick(object sender, RoutedEventArgs e)
