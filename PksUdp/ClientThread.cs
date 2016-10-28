@@ -92,12 +92,11 @@ namespace PksUdp
                 }
                 catch (SocketException ex)
                 {
-                    if(ex.SocketErrorCode != SocketError.TimedOut)
+                    if(ex.SocketErrorCode == SocketError.TimedOut)
                         Ping();
                     // ConnectionReset = An existing connection was forcibly closed by the remote host
                     else if (ex.SocketErrorCode != SocketError.ConnectionReset)
                         throw;
-                    return;
                 }
             }
         }
