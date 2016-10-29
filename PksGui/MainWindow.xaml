@@ -45,7 +45,13 @@
             </Border>
         </WrapPanel>
         <Border Grid.Row="1" BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
-            <TextBox x:Name="Output" IsReadOnly="True" HorizontalScrollBarVisibility="Auto" TextWrapping="WrapWithOverflow" VerticalScrollBarVisibility="Visible"/>
+            <TextBox x:Name="Output" IsReadOnly="True" HorizontalScrollBarVisibility="Auto" TextWrapping="WrapWithOverflow" VerticalScrollBarVisibility="Visible">
+                <TextBox.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Vycisti" Click="Button_Click"/>
+                    </ContextMenu>
+                </TextBox.ContextMenu>
+            </TextBox>
         </Border>
         <StackPanel x:Name="InputPanel" x:FieldModifier="private" Grid.Row="2" Orientation="Vertical" IsEnabled="False">
             <DockPanel>
