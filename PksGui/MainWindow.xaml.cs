@@ -252,6 +252,12 @@ namespace PksGui
 
             _pksClient.SendMessage(Input.Text, size);
         }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            _pksServer?.Close();
+            _pksClient?.Close();
+        }
     }
 
 }
