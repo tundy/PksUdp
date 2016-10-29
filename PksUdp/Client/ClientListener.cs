@@ -158,15 +158,6 @@ namespace PksUdp.Client
                 }
             }
 
-            var id = bytes.GetFragmentId();
-            lock (_pksClient.LastMessageLock)
-            {
-                if (!id.Equals(_pksClient.lastMessage.PaketId))
-                {
-                    return;
-                }
-            }
-
             switch (type)
             {
                 case Extensions.Type.RetryFragment:
@@ -175,6 +166,7 @@ namespace PksUdp.Client
                 case Extensions.Type.SuccessFull:
                     lock (_pksClient.LastMessageLock)
                     {
+                        if (ZleId(bytes)) return;
                         _pksClient.OnReceivedMessage(_pksClient.lastMessage.PaketId, true);
                         _pksClient.lastMessage = null;
                     }
@@ -182,6 +174,7 @@ namespace PksUdp.Client
                 case Extensions.Type.Fail:
                     lock (_pksClient.LastMessageLock)
                     {
+                        if (ZleId(bytes)) return;
                         _pksClient.OnReceivedMessage(_pksClient.lastMessage.PaketId, false);
                         _pksClient.lastMessage = null;
                     }
@@ -189,6 +182,19 @@ namespace PksUdp.Client
                 default:
                     return;
             }
+        }
+
+        private bool ZleId(byte[] bytes)
+        {
+            var id = bytes.GetFragmentId();
+            lock (_pksClient.LastMessageLock)
+            {
+                if (!id.Equals(_pksClient.lastMessage.PaketId))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static bool CheckFragment(byte[] bytes)
