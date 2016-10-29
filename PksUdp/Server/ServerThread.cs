@@ -278,6 +278,7 @@ namespace PksUdp.Server
 
         private void SpracujFragmentovanySubor(byte[] bytes, PaketId id, IPEndPoint sender)
         {
+            _lastFragmentType = Extensions.Type.Nothing;
         }
 
         private void SpracujNefragmentovanySubor(byte[] bytes, PaketId id, IPEndPoint sender)
@@ -357,7 +358,7 @@ namespace PksUdp.Server
                 return false;
             }
 
-            if (bytes[0] != 0x7E && bytes[0] != 0x7E)
+            if (bytes[0] != 0x7E && bytes[bytes.Length-1] != 0x7E)
             {
                 return false;
             }

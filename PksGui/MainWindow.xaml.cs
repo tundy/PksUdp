@@ -14,7 +14,7 @@ namespace PksGui
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow
     {
         private readonly PksServer _pksServer;
         private readonly PksClient _pksClient;

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -103,7 +102,7 @@ namespace PksUdp.Client
                                 }
                             }
 
-                            DecodePaket(bytes, rcv);
+                            DecodePaket(bytes);
                             break;
                         }
 
@@ -139,7 +138,7 @@ namespace PksUdp.Client
 
         private bool _secondTry;
 
-        private void DecodePaket(byte[] bytes, IPEndPoint count)
+        private void DecodePaket(byte[] bytes)
         {
             if (CheckFragment(bytes)) return;
 
@@ -238,40 +237,13 @@ namespace PksUdp.Client
                     {
                         return;
                     }
-                    var name = Path.GetFileName(naOdoslanie.Path);
+                    var name = Path.GetFileName(info.FullName);
                     var fileName = Encoding.UTF8.GetBytes(name);
                     var size = info.Length + fileName.Length + 4;
-                    if (size + 10 <= naOdoslanie.FragmentSize)
+                    var fSize = (uint)naOdoslanie.FragmentSize;
+                    if (size + 10 <= fSize)
                     {
-                        _lastMessage = new FileFragments(naOdoslanie.Path, 0, (uint) naOdoslanie.FragmentSize,
-                            new PaketId());
-
-                        var file = File.ReadAllBytes(naOdoslanie.Path);
-
-                        var fragment = new byte[size + 10];
-                        fragment[0] = 0x7E;
-                        fragment[fragment.Length - 1] = 0x7E;
-                        fragment.SetFragmentId(_lastMessage.PaketId);
-                        fragment.SetPaketType(Extensions.Type.File);
-
-                        fragment[Extensions.FragmentDataIndex] = (byte)(fileName.Length >> 24);
-                        fragment[Extensions.FragmentDataIndex + 1] = (byte)(fileName.Length >> 16);
-                        fragment[Extensions.FragmentDataIndex + 2] = (byte)(fileName.Length >> 8);
-                        fragment[Extensions.FragmentDataIndex + 3] = (byte)fileName.Length;
-
-                        for (var i = 0; i < fileName.Length; i++)
-                        {
-                            fragment[Extensions.FragmentDataIndex + i + 4] = fileName[i];
-                        }
-
-                        for (var i = 0; i < file.Length; i++)
-                        {
-                            fragment[Extensions.FragmentDataIndex + i + 4 + fileName.Length] = file[i];
-                        }
-
-                        fragment.CreateChecksum();
-
-                        _pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
+                        SendFile(info, fSize, size, fileName, naOdoslanie.Error);
                     }
                     else
                     {
@@ -281,6 +253,42 @@ namespace PksUdp.Client
             }
             _recieveTimer.Start();
         }
+
+        private void SendFile(FileInfo info, uint fSize, long size, byte[] fileName, bool error)
+        {
+            _lastMessage = new FileFragments(info.FullName, 1, (uint) fSize,
+                new PaketId());
+
+            var file = File.ReadAllBytes(info.FullName);
+
+            var fragment = new byte[size + 10];
+            fragment[0] = 0x7E;
+            fragment[fragment.Length - 1] = 0x7E;
+            fragment.SetFragmentId(_lastMessage.PaketId);
+            fragment.SetPaketType(Extensions.Type.File);
+
+            fragment[Extensions.FragmentDataIndex] = (byte) (fileName.Length >> 24);
+            fragment[Extensions.FragmentDataIndex + 1] = (byte) (fileName.Length >> 16);
+            fragment[Extensions.FragmentDataIndex + 2] = (byte) (fileName.Length >> 8);
+            fragment[Extensions.FragmentDataIndex + 3] = (byte) fileName.Length;
+
+            for (var i = 0; i < fileName.Length; i++)
+            {
+                fragment[Extensions.FragmentDataIndex + i + 4] = fileName[i];
+            }
+
+            for (var i = 0; i < file.Length; i++)
+            {
+                fragment[Extensions.FragmentDataIndex + i + 4 + fileName.Length] = file[i];
+            }
+
+            fragment.CreateChecksum();
+            if (error)
+                ++fragment[fragment.Length - 2];
+
+            _pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
+        }
+
         private static void RozdelSpravuNaFragmenty(MessageFragments pksClientLastMessage, PksClient.SpravaNaOdoslanie sprava)
         {
             var utf8 = Encoding.UTF8.GetBytes(sprava.Sprava);
@@ -403,7 +411,27 @@ namespace PksUdp.Client
 
         private void ResendFileFragments(FileFragments file, uint order)
         {
-            throw new NotImplementedException();
+            if (file.FragmentCount <= order)
+                return;
+
+            if (file.FragmentCount == 1)
+            {
+                var info = new FileInfo(file.Path);
+
+                if (!info.Exists)
+                {
+                    return;
+                }
+                var name = Path.GetFileName(info.FullName);
+                var fileName = Encoding.UTF8.GetBytes(name);
+                var size = info.Length + fileName.Length + 4;
+                var fSize = file.FragmentLength;
+                SendFile(info, fSize, size, fileName, false);
+            }
+            else
+            {
+                
+            }
         }
 
         private static bool WrongProtocol(byte[] bytes)
