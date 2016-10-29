@@ -22,7 +22,13 @@
             <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
                 <WrapPanel x:Name="ControlsPanel" x:FieldModifier="private" VerticalAlignment="Center">
                     <Button Margin="5" x:Name="StartServerButton" x:FieldModifier="private" Content="Spusti server" VerticalContentAlignment="Center" Click="ServerStart_ButtonClick"/>
-                    <Button Margin="5" x:Name="ConnectButton" x:FieldModifier="private" Content="Pripojit" VerticalContentAlignment="Center" Click="Connect_ButtonClick"/>
+                    <Button Margin="5" x:Name="ConnectButton" x:FieldModifier="private" Content="Pripojit" VerticalContentAlignment="Center" Click="Connect_ButtonClick">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Pripojit chybne"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                     <Button Margin="5" IsEnabled="False" x:Name="StopButton" x:FieldModifier="private" Content="Odpojit" VerticalContentAlignment="Center" Click="Disconnect_ButtonClick"/>
                 </WrapPanel>
             </Border>
