@@ -11,10 +11,12 @@ namespace PksUdp.Client
         internal abstract class NaOdoslanie
         {
             internal readonly int FragmentSize;
+            internal readonly bool Error;
 
-            protected NaOdoslanie(int fragmentSize)
+            protected NaOdoslanie(int fragmentSize, bool error)
             {
                 FragmentSize = fragmentSize;
+                Error = error;
             }
         }
 
@@ -22,7 +24,7 @@ namespace PksUdp.Client
         {
             internal string Sprava;
 
-            public SpravaNaOdoslanie(string sprava, int fragmentSize) : base(fragmentSize)
+            public SpravaNaOdoslanie(string sprava, int fragmentSize, bool error) : base(fragmentSize, error)
             {
                 Sprava = sprava;
             }
@@ -32,7 +34,7 @@ namespace PksUdp.Client
         {
             internal readonly string Path;
 
-            public SuborNaOdoslanie(string path, int fragmentSize) : base(fragmentSize)
+            public SuborNaOdoslanie(string path, int fragmentSize, bool error) : base(fragmentSize, error)
             {
                 Path = path;
             }
@@ -42,19 +44,19 @@ namespace PksUdp.Client
         internal readonly Queue<NaOdoslanie> Poradovnik = new Queue<NaOdoslanie>();
         internal readonly object PoradovnikLock = new object();
 
-        public void SendMessage(string text, int fragmentSize)
+        public void SendMessage(string text, int fragmentSize, bool error)
         {
             lock (PoradovnikLock)
             {
-                Poradovnik.Enqueue(new SpravaNaOdoslanie(text, fragmentSize));
+                Poradovnik.Enqueue(new SpravaNaOdoslanie(text, fragmentSize, error));
             }
         }
 
-        public void SendFile(string path, int fragmentSize)
+        public void SendFile(string path, int fragmentSize, bool error)
         {
             lock (PoradovnikLock)
             {
-                Poradovnik.Enqueue(new SuborNaOdoslanie(path, fragmentSize));
+                Poradovnik.Enqueue(new SuborNaOdoslanie(path, fragmentSize, error));
             }
         }
 

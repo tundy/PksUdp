@@ -193,8 +193,17 @@ namespace PksUdp.Client
 
                 _lastMessage = new MessageFragments(new PaketId());
                 RozdelSpravuNaFragmenty((MessageFragments)_lastMessage, odoslanie);
+                var prvy = true;
                 foreach (var fragment in ((MessageFragments)_lastMessage).fragments)
                 {
+                    if (odoslanie.Error && prvy)
+                    {
+                        var temp = (byte[])fragment.Clone();
+                        temp[temp.Length - 2]++;
+                        _pksClient.Socket.Client.Send(temp, temp.Length, SocketFlags.None);
+                        prvy = false;
+                        continue;
+                    }
                     _pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
                 }
             }
@@ -219,6 +228,7 @@ namespace PksUdp.Client
                 fragment.SetPaketType(Extensions.Type.Message);
                 Encoding.UTF8.GetBytes(sprava.Sprava, 0, sprava.Sprava.Length, fragment, Extensions.FragmentDataIndex);
                 fragment.CreateChecksum();
+
                 pksClientLastMessage.fragments.Add(fragment);
             }
             else
@@ -264,6 +274,7 @@ namespace PksUdp.Client
                 fragment.SetFragmentOrder(order);
                 Encoding.UTF8.GetBytes(sprava.Sprava, offset, fragment.Length - 14, fragment, Extensions.FragmentDatafIndex);
                 fragment.CreateChecksum();
+
                 pksClientLastMessage.fragments.Add(fragment);
             }
         }

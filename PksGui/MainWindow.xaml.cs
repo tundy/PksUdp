@@ -251,7 +251,7 @@ namespace PksGui
                 return;
             }
 
-            _pksClient.SendMessage(Input.Text, size);
+            _pksClient.SendMessage(Input.Text, size, ChybnyFragment.IsChecked == true);
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
