@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Timers;
 
@@ -19,13 +20,15 @@ namespace PksUdp
         /// Timer pre znovu vyziadanie fragmentov.
         /// </summary>
         private readonly System.Timers.Timer _recieveTimer = new System.Timers.Timer {Interval = 500, AutoReset = false};
+
         private readonly System.Timers.Timer _pingTimer = new System.Timers.Timer {Interval = 30000, AutoReset = true};
 
         public ClientThread(PksClient pksClient)
         {
             _pksClient = pksClient;
             _recieveTimer.Elapsed += _recieveTimer_Elapsed;
-            _pingTimer.Elapsed += _pingTimer_Elapsed; ;
+            _pingTimer.Elapsed += _pingTimer_Elapsed;
+            ;
         }
 
         private void _pingTimer_Elapsed(object sender, ElapsedEventArgs e)
@@ -49,16 +52,17 @@ namespace PksUdp
 
         internal void Loop()
         {
-            _pksClient.Socket.Connect(_pksClient.endPoint);
-            var data = Extensions.ConnectedPaket();
-            _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
-            _pingTimer.Start();
-            var rcv = _pksClient.endPoint;
-
-            // Here will be saved information about UDP sender.
-            for (;;)
+            byte[] data;
+            try
             {
-                try
+                _pksClient.Socket.Connect(_pksClient.endPoint);
+                data = Extensions.ConnectedPaket();
+                _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
+                _pingTimer.Start();
+                var rcv = _pksClient.endPoint;
+
+                // Here will be saved information about UDP sender.
+                for (;;)
                 {
                     _recieveTimer.Start();
 
@@ -76,33 +80,45 @@ namespace PksUdp
 
                     DecodePaket(bytes, rcv);
                 }
-                catch (ThreadAbortException)
+            }
+            catch (ThreadAbortException)
+            {
+            }
+            catch (SocketException ex)
+            {
+                _pksClient.OnSocketException(ex);
+            }
+            finally
+            {
+                if (_pksClient?.Socket != null)
                 {
-                    if (_pksClient.Socket.Client == null || !_pksClient.Socket.Client.Connected) return;
+                    if (_pksClient.Socket.Client != null && _pksClient.Socket.Client.Connected)
+                    {
+                        try
+                        {
+                            data = Extensions.DisconnectedPaket();
+                            _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
+                        }
+                        finally
+                        {
+                            try
+                            {
+                                _pksClient.Socket.Client.Disconnect(true);
+                            }
+                            catch
+                            {
+                                // ignored
+                            }
+                        }
+                    }
                     try
                     {
-                        data = Extensions.DisconnectedPaket();
-                        _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
+                        _pksClient.Socket.Close();
+                        _pksClient.Socket.Dispose();
                     }
-                    finally 
+                    catch
                     {
-                        _pksClient.Socket.Client.Disconnect(true);
-                    }
-                    return;
-                }
-                catch (SocketException ex)
-                {
-                    switch (ex.SocketErrorCode)
-                    {
-                        case SocketError.TimedOut:
-                            _pksClient.OnServerTimedOut();
-                            return;
-                        // ConnectionReset = An existing connection was forcibly closed by the remote host
-                        case SocketError.ConnectionReset:
-                            _pksClient.OnServerClosedConnection();
-                            return;
-                        default:
-                            throw;
+                        // ignored
                     }
                 }
             }
@@ -129,10 +145,20 @@ namespace PksUdp
             if (_pksClient.lastMessage == null)
             {
                 return;
+                /*switch (type)
+                {
+                    case Extensions.Type.Message:
+                        _pksClient.lastMessage = new MessageFragments(id);
+                        break;
+                    case Extensions.Type.File:
+                        _pksClient.lastMessage = new FileFragments(id);
+                        break;
+                    default:
+                        break;
+                }*/
             }
 
             var id = bytes.GetFragmentId();
-
             if (!id.Equals(_pksClient.lastMessage.PaketId))
             {
                 return;
@@ -217,7 +243,7 @@ namespace PksUdp
             {
                 if (_secondTry)
                 {
-                    _pksClient.OnServerTimedOut();
+                    _pksClient.OnNoServerResponse();
                 }
                 _secondTry = true;
                 return true;

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -11,7 +12,7 @@ namespace PksUdp
     {
         public delegate void ReceivedMessageHandler(PaketId id, bool success);
         public delegate void ServerHandler();
-
+        public delegate void SocketExceptionHandler(SocketException e);
 
         public event ReceivedMessageHandler ReceivedMessage;
         internal virtual void OnReceivedMessage(PaketId id, bool success)
@@ -25,18 +26,17 @@ namespace PksUdp
             ClientConnected?.Invoke();
         }
 
-        public event ServerHandler ServerTimedOut;
-        internal virtual void OnServerTimedOut()
+        public event ServerHandler NoServerResponse;
+        internal virtual void OnNoServerResponse()
         {
-            ServerTimedOut?.Invoke();
+            NoServerResponse?.Invoke();
+        }
+        public event SocketExceptionHandler SocketException;
+        internal virtual void OnSocketException(SocketException e)
+        {
+            SocketException?.Invoke(e);
             Close();
         }
 
-        public event ServerHandler ServerClosedConnection;
-        internal virtual void OnServerClosedConnection()
-        {
-            ServerClosedConnection?.Invoke();
-            Close();
-        }
     }
 }

@@ -45,26 +45,26 @@ namespace PksGui
             _pksClient = new PksClient();
             _pksClient.ClientConnected += _pksClient_ClientConnected;
             _pksClient.ReceivedMessage += _pksClient_ReceivedMessage;
-            _pksClient.ServerTimedOut += _pksClient_ServerTimedOut;
-            _pksClient.ServerClosedConnection += PksClientServerClosedConnection; ;
+            _pksClient.SocketException += _pksClient_SocketException;
+            _pksClient.NoServerResponse += _pksClient_NoServerResponse;
         }
 
-        private void PksClientServerClosedConnection()
+        private void _pksClient_NoServerResponse()
         {
             Dispatcher.Invoke(() =>
             {
-                Output.AppendText($"{DateTime.Now}: Server zrusil spojenie{Environment.NewLine}");
+                Output.AppendTextAndScroll($"{DateTime.Now}: Server nepotvrdil spojenie{Environment.NewLine}");
                 if (!_lastStateServer)
                     ResetControls();
             });
         }
 
-        private void _pksClient_ServerTimedOut()
+        private void _pksClient_SocketException(System.Net.Sockets.SocketException e)
         {
             Dispatcher.Invoke(() =>
             {
-                Output.AppendText($"{DateTime.Now}: Server Timedout{Environment.NewLine}");
-                if(!_lastStateServer)
+                Output.AppendTextAndScroll($"{DateTime.Now}: {e.Message}{Environment.NewLine}");
+                if (!_lastStateServer)
                     ResetControls();
             });
         }
@@ -73,25 +73,31 @@ namespace PksGui
         {
             if (!success)
             {
-                Output.Dispatcher.Invoke(() => { Output.AppendText($"{DateTime.Now}: Neuspesne odoslanie spravy.{Environment.NewLine}"); });
+                Output.Dispatcher.Invoke(() =>
+                {
+                    Output.AppendTextAndScroll($"{DateTime.Now}: Neuspesne odoslanie spravy.{Environment.NewLine}");
+                });
                 return;
             }
-            Output.Dispatcher.Invoke(() => { Output.AppendText($"{DateTime.Now}: Uspesne odoslanie spravy.{Environment.NewLine}"); });
+            Output.Dispatcher.Invoke(() =>
+            {
+                Output.AppendTextAndScroll($"{DateTime.Now}: Uspesne odoslanie spravy.{Environment.NewLine}");
+            });
         }
 
         private void _pksClient_ClientConnected()
         {
-            Output.Dispatcher.Invoke(() => { Output.AppendText($"{DateTime.Now}: Vzniklo spojenie zo serverom{Environment.NewLine}"); });
+            Output.Dispatcher.Invoke(() => { Output.AppendTextAndScroll($"{DateTime.Now}: Vzniklo spojenie zo serverom{Environment.NewLine}"); });
             InputPanel.Dispatcher.Invoke(() => { InputPanel.IsEnabled = true; }); 
         }
 
         private void PksServerReceivedMessage(System.Net.IPEndPoint endPoint, Message message)
         {
            Output.Dispatcher.Invoke(() => {
-               Output.AppendText($"({endPoint}) {DateTime.Now}:{Environment.NewLine}");
-               Output.AppendText($"Pocet fragmentov: {message.FragmentsCount}{Environment.NewLine}");
-               Output.AppendText($"Dlzka fragmentu: {message.FragmentLength}{Environment.NewLine}");
-               Output.AppendText(message.Error
+               Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}:{Environment.NewLine}");
+               Output.AppendTextAndScroll($"Pocet fragmentov: {message.FragmentsCount}{Environment.NewLine}");
+               Output.AppendTextAndScroll($"Dlzka fragmentu: {message.FragmentLength}{Environment.NewLine}");
+               Output.AppendTextAndScroll(message.Error
                    ? $"Nepodarilo sa nacitat celu spravu.{Environment.NewLine}"
                    : $"Sprava: {message.Text}{Environment.NewLine}");
            });
@@ -99,16 +105,16 @@ namespace PksGui
 
         private void PksServerClientDisconnected(System.Net.IPEndPoint endPoint)
         {
-            Output.Dispatcher.Invoke(() => { Output.AppendText($"({endPoint}) {DateTime.Now}: Client disconnected{Environment.NewLine}"); });
+            Output.Dispatcher.Invoke(() => { Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Client disconnected{Environment.NewLine}"); });
         }
 
         private void PksServerClientConnected(System.Net.IPEndPoint endPoint)
         {
-            Output.Dispatcher.Invoke(() => { Output.AppendText($"({endPoint}) {DateTime.Now}: Client connected{Environment.NewLine}"); });
+            Output.Dispatcher.Invoke(() => { Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Client connected{Environment.NewLine}"); });
         }
         private void PksServerClientTimedOud(System.Net.IPEndPoint endPoint)
         {
-            Output.Dispatcher.Invoke(() => { Output.AppendText($"({endPoint}) {DateTime.Now}: Client Timedout{Environment.NewLine}"); });
+            Output.Dispatcher.Invoke(() => { Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Client Timedout{Environment.NewLine}"); });
         }
 
         private void Disconnect_ButtonClick(object sender, RoutedEventArgs e)
@@ -117,12 +123,12 @@ namespace PksGui
 
             if (_lastStateServer)
             {
-                Output.AppendText($"Server sa ukoncil.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Server sa ukoncil.{Environment.NewLine}");
                 _pksServer.Close();
             }
             else
             {
-                Output.AppendText($"Klient sa odpojil od servera.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Klient sa odpojil od servera.{Environment.NewLine}");
                 _pksClient.Close();
             }
         }
@@ -148,7 +154,7 @@ namespace PksGui
             ushort port;
             if (!ushort.TryParse(ThisPort.Text, out port))
             {
-                Output.AppendText($"Nepodarilo sa nacitat port.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Nepodarilo sa nacitat port.{Environment.NewLine}");
                 return;
             }
 
@@ -158,10 +164,10 @@ namespace PksGui
             }
             catch (Exception ex)
             {
-                Output.AppendText($"{ex.Message}{Environment.NewLine}");
+                Output.AppendTextAndScroll($"{ex.Message}{Environment.NewLine}");
                 return;
             }
-            Output.AppendText($"Uspesne spustenie server na porte {port}.{Environment.NewLine}");
+            Output.AppendTextAndScroll($"Uspesne spustenie server na porte {port}.{Environment.NewLine}");
             Title = $"Server - {port}";
             StartServerButton.IsEnabled = false;
             ConnectButton.IsEnabled = false;
@@ -185,7 +191,7 @@ namespace PksGui
                 }
                 catch (Exception ex)
                 {
-                    Output.AppendText($"{ex.Message}{Environment.NewLine}");
+                    Output.AppendTextAndScroll($"{ex.Message}{Environment.NewLine}");
                     return;
                 }
 
@@ -196,7 +202,7 @@ namespace PksGui
             }
             catch (Exception ex)
             {
-                Output.AppendText($"{ex.Message}{Environment.NewLine}");
+                Output.AppendTextAndScroll($"{ex.Message}{Environment.NewLine}");
                 return;
             }
 
@@ -204,18 +210,18 @@ namespace PksGui
             IPAddress ip;
             if (!IPAddress.TryParse(ServerIp.Text, out ip))
             {
-                Output.AppendText($"Nepodarilo sa nacitat IP adresu.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Nepodarilo sa nacitat IP adresu.{Environment.NewLine}");
                 return;
             }
 
             ushort portServer;
             if (!ushort.TryParse(ServerPort.Text, out portServer))
             {
-                Output.AppendText($"Nepodarilo sa nacitat port servera.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Nepodarilo sa nacitat port servera.{Environment.NewLine}");
                 return;
             }
 
-            Output.AppendText($"Pokusam sa pripojit na {ip}:{portServer}.{Environment.NewLine}");
+            Output.AppendTextAndScroll($"Pokusam sa pripojit na {ip}:{portServer}.{Environment.NewLine}");
             Title = $"Klient - {ip}:{portServer}";
             StartServerButton.IsEnabled = false;
             ConnectButton.IsEnabled = false;

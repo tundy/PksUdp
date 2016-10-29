@@ -29,11 +29,6 @@ namespace PksUdp
         private readonly object _clientLock = new object();
 
         /// <summary>
-        /// Bol klient uspense pripojeny.
-        /// </summary>
-        private bool _connected;
-
-        /// <summary>
         /// Udaje o klientovi.
         /// </summary>
         private IPEndPoint Client
@@ -114,11 +109,6 @@ namespace PksUdp
         /// </summary>
         private async void AskForFragments()
         {
-            if (_connected)
-            {
-                return;
-            }
-
             var sendList = new List<Task<int>>();
 
             lock (_clientLock)
@@ -177,6 +167,19 @@ namespace PksUdp
 
                     if (!IsFragmentCorrect(bytes))
                     {
+                        bytes = null;
+                        lock (_clientLock)
+                        {
+                            if (_client == null)
+                            {
+                                bytes = PksServer.FailPaket();
+                            }
+                        }
+                        if (bytes != null)
+                        {
+                            _pksServer.Socket.SendAsync(bytes, bytes.Length, sender);
+                            continue;
+                        }
                         if (_lastFragmentType == Extensions.Type.Nothing)
                         {
                             AskForFragments();
@@ -271,14 +274,13 @@ namespace PksUdp
                     var data = Extensions.ConnectedPaket();
                     _pksServer.Socket.SendAsync(data, data.Length, client);
                     _pksServer.Socket.SendAsync(data, data.Length, client);
-                    _connected = true;
                     Client = client;
                     ResetCounter();
                     _pksServer.OnClientConnected(client);
                     return true;
                 }
 
-                if (!_connected)
+                if (_client == null)
                 {
                     return true;
                 }
@@ -287,7 +289,6 @@ namespace PksUdp
 
                 _pksServer.OnClientDisconnected(client);
                 Client = null;
-                _connected = false;
                 return true;
             }
         }

@@ -25,7 +25,8 @@ namespace PksUdp
             return data;
         }
         internal static byte[] CancelPaket(PaketId id) => CreateFragment(Extensions.Type.Cancel, id, 0);
-        internal static byte[] CancelPaket() => CreateFragment(Extensions.Type.Cancel, new PaketId(0, 0), 0);
+        internal static byte[] FailPaket(PaketId id) => CreateFragment(Extensions.Type.Fail, id, 0);
+        internal static byte[] FailPaket() => CreateFragment(Extensions.Type.Fail, new PaketId(0, 0), 0);
         internal static byte[] SuccessPaket(PaketId id, uint fragmentCount) => CreateFragment(Extensions.Type.SuccessFull, id, fragmentCount);
         
         internal static byte[] RetryPaket() => RetryFragment(new PaketId(0, 0), 0);
