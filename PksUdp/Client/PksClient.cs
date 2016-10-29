@@ -8,10 +8,6 @@ namespace PksUdp.Client
 {
     public partial class PksClient
     {
-        internal bool Connected;
-        internal readonly object ConnectedLocker = new object();
-
-
         internal abstract class NaOdoslanie
         {
             internal readonly int FragmentSize;
@@ -72,8 +68,6 @@ namespace PksUdp.Client
         /// </summary>
         private Thread _listener;
 
-        private Thread _sender;
-
         private int? _lastPort;
         /// <summary>
         /// Local (Listener) Port.
@@ -130,20 +124,13 @@ namespace PksUdp.Client
             Close();
             Init();
 
-            _listener = new Thread(new ClientListener(this).RecieveLoop)
+            _listener = new Thread(new ClientThread(this).RecieveLoop)
             {
                 IsBackground = true,
-                Name = $"UdpClient Listener {Port} - {EndPoint}",
-                Priority = ThreadPriority.AboveNormal
-            };
-            _sender = new Thread(new ClientSender(this).SenderLoop)
-            {
-                IsBackground = true,
-                Name = $"UdpClient Sender {Port} - {EndPoint}",
+                Name = $"UdpClient {Port} - {EndPoint}",
                 Priority = ThreadPriority.AboveNormal
             };
             _listener.Start();
-            _sender.Start();
         }
 
         public void Connect(IPEndPoint endPoint)
@@ -187,11 +174,9 @@ namespace PksUdp.Client
         {
             if(_listener != null && _listener.IsAlive)
                 _listener.Abort();
-            if (_sender != null && _sender.IsAlive)
-                _sender.Abort();
             Socket?.Close();
-            lock (ConnectedLocker)
-                Connected = false;
+            lock(PoradovnikLock)
+                Poradovnik.Clear();
         }
     }
 }

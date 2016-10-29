@@ -1,28 +1,31 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Timers;
 using Timer = System.Timers.Timer;
 
 namespace PksUdp.Client
 {
-    internal class ClientListener
+    internal class ClientThread
     {
         /// <summary>
         /// Udp Socket.
         /// </summary>
         private readonly PksClient _pksClient;
 
+        private bool _connected;
 
         /// <summary>
         /// Timer pre znovu vyziadanie fragmentov.
         /// </summary>
-        private readonly Timer _recieveTimer = new Timer {Interval = 500, AutoReset = false};
+        private readonly Timer _recieveTimer = new Timer {Interval = 1000, AutoReset = false};
 
         private readonly Timer _pingTimer = new Timer {Interval = 30000, AutoReset = true};
 
-        public ClientListener(PksClient pksClient)
+        public ClientThread(PksClient pksClient)
         {
             _pksClient = pksClient;
             _recieveTimer.Elapsed += _recieveTimer_Elapsed;
@@ -69,18 +72,15 @@ namespace PksUdp.Client
 
                     var bytes = _pksClient.Socket.Receive(ref rcv);
 
-                    lock (_pksClient.ConnectedLocker)
+                    _recieveTimer.Stop();
+
+                    if (_connected)
                     {
-                        if (_pksClient.Connected)
+                        if (!rcv.Equals(_pksClient.EndPoint))
                         {
-                            if (!rcv.Equals(_pksClient.EndPoint))
-                            {
-                                continue;
-                            }
+                            continue;
                         }
                     }
-
-                    _recieveTimer.Stop();
 
                     DecodePaket(bytes, rcv);
                 }
@@ -96,6 +96,7 @@ namespace PksUdp.Client
             {
                 _pingTimer.Stop();
                 _recieveTimer.Stop();
+                _connected = false;
                 if (_pksClient?.Socket != null)
                 {
                     if (_pksClient.Socket.Client != null && _pksClient.Socket.Client.Connected)
@@ -154,6 +155,7 @@ namespace PksUdp.Client
             { 
                 if (_pksClient.lastMessage == null)
                 {
+                    SendFragments();
                     return;
                 }
             }
@@ -183,6 +185,96 @@ namespace PksUdp.Client
                     return;
             }
         }
+
+        private void SendFragments()
+        {
+            PksClient.NaOdoslanie odoslat;
+            lock (_pksClient.PoradovnikLock)
+            {
+                if (!_pksClient.Poradovnik.Any())
+                {
+                    return;
+                }
+                odoslat = _pksClient.Poradovnik.Dequeue();
+            }
+
+            var odoslanie = odoslat as PksClient.SpravaNaOdoslanie;
+            if (odoslanie != null)
+            {
+
+                _pksClient.lastMessage = new MessageFragments(new PaketId());
+                RozdelSpravuNaFragmenty((MessageFragments)_pksClient.lastMessage, odoslanie);
+                foreach (var fragment in ((MessageFragments)_pksClient.lastMessage).fragments)
+                {
+                    _pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
+                }
+            }
+            else
+            {
+                var naOdoslanie = odoslat as PksClient.SuborNaOdoslanie;
+                if (naOdoslanie != null)
+                {
+                    // ToDo
+                }
+            }
+        }
+        private static void RozdelSpravuNaFragmenty(MessageFragments pksClientLastMessage, PksClient.SpravaNaOdoslanie sprava)
+        {
+            if (sprava.FragmentSize >= sprava.Sprava.Length + 10)
+            {
+                var fragment = new byte[sprava.Sprava.Length + 10];
+                fragment[0] = 0x7E;
+                fragment[fragment.Length - 1] = 0x7E;
+                fragment.SetFragmentId(pksClientLastMessage.PaketId);
+                fragment.SetPaketType(Extensions.Type.Message);
+                Encoding.UTF8.GetBytes(sprava.Sprava, 0, sprava.Sprava.Length, fragment, Extensions.FragmentDataIndex);
+                fragment.CreateChecksum();
+                pksClientLastMessage.fragments.Add(fragment);
+            }
+            else
+            {
+                uint order = 0;
+
+                var fragment = new byte[sprava.FragmentSize];
+                fragment[0] = 0x7E;
+                fragment[fragment.Length - 1] = 0x7E;
+                fragment.SetFragmentId(pksClientLastMessage.PaketId);
+                fragment.SetPaketType(Extensions.Type.Message);
+                fragment.SetFragmentOrder(order++);
+                Encoding.UTF8.GetBytes(sprava.Sprava, 0, fragment.Length - 18, fragment, Extensions.FragmentDataf0Index);
+                sprava.Sprava = sprava.Sprava.Substring(fragment.Length - 18);
+                fragment.SetFragmentCount((uint)(sprava.Sprava.Length / (sprava.FragmentSize - 14)) + 1);
+                fragment.CalculateChecksum();
+
+                pksClientLastMessage.fragments.Add(fragment);
+
+                var offset = 0;
+                while (sprava.Sprava.Length - offset > sprava.FragmentSize - 14)
+                {
+                    fragment = new byte[sprava.FragmentSize];
+                    fragment[0] = 0x7E;
+                    fragment[fragment.Length - 1] = 0x7E;
+                    fragment.SetFragmentId(pksClientLastMessage.PaketId);
+                    fragment.SetPaketType(Extensions.Type.Message);
+                    fragment.SetFragmentOrder(order++);
+                    Encoding.UTF8.GetBytes(sprava.Sprava, offset, fragment.Length - 14, fragment, Extensions.FragmentDatafIndex);
+                    offset += sprava.FragmentSize - 14;
+                    fragment.CalculateChecksum();
+                    pksClientLastMessage.fragments.Add(fragment);
+                }
+
+                fragment = new byte[sprava.FragmentSize - (sprava.Sprava.Length - offset)];
+                fragment[0] = 0x7E;
+                fragment[fragment.Length - 1] = 0x7E;
+                fragment.SetFragmentId(pksClientLastMessage.PaketId);
+                fragment.SetPaketType(Extensions.Type.Message);
+                fragment.SetFragmentOrder(order);
+                Encoding.UTF8.GetBytes(sprava.Sprava, offset, fragment.Length - 14, fragment, Extensions.FragmentDatafIndex);
+                fragment.CalculateChecksum();
+                pksClientLastMessage.fragments.Add(fragment);
+            }
+        }
+
 
         private bool ZleId(byte[] bytes)
         {
@@ -253,8 +345,7 @@ namespace PksUdp.Client
 
         private bool NoConnection(Extensions.Type type)
         {
-            lock (_pksClient.ConnectedLocker)
-            if (_pksClient.Connected) return false;
+            if (_connected) return false;
 
             if (type != Extensions.Type.Connect)
             {
@@ -267,8 +358,7 @@ namespace PksUdp.Client
             }
 
             _pksClient.OnClientConnected();
-            lock (_pksClient.ConnectedLocker)
-            _pksClient.Connected = true;
+            _connected = true;
             return false;
         }
     }
