@@ -493,6 +493,7 @@ namespace PksUdp.Server
             _attemp = 0;
             _fragmentCount = -1;
             _fragmentLength = 0;
+            _lastId = null;
             _lastFragmentType = Extensions.Type.Nothing;
             lock (_fragmentLock)
             {
