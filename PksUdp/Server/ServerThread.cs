@@ -17,7 +17,7 @@ namespace PksUdp.Server
         /// <summary>
         /// Maximalny pocet opakovani pre znovu vziadanie fragmentu.
         /// </summary>
-        private const int MaxRetry = 10;
+        private const int MaxRetry = 5;
         /// <summary>
         /// Aktualny pokus znovu vyziadania fragmentu.
         /// </summary>
@@ -442,11 +442,11 @@ namespace PksUdp.Server
 
             var utf8 = new byte[0];
 
-            foreach (var fragment in _fragments)
+            for(uint i = 0; i < (uint)_fragmentCount; i++)
             {
                 var oldSize = utf8.Length;
-                Array.Resize(ref utf8, utf8.Length + fragment.Value.Length);
-                Array.Copy(fragment.Value, 0, utf8, oldSize, fragment.Value.Length);
+                Array.Resize(ref utf8, utf8.Length + _fragments[i].Length);
+                Array.Copy(_fragments[i], 0, utf8, oldSize, _fragments[i].Length);
             }
 
             _pksServer.OnReceivedMessage(sender, new Message

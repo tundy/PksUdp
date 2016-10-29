@@ -23,7 +23,7 @@ namespace PksUdp.Client
         /// <summary>
         /// Timer pre znovu vyziadanie fragmentov.
         /// </summary>
-        private readonly Timer _recieveTimer = new Timer {Interval = 1000, AutoReset = false };
+        private readonly Timer _recieveTimer = new Timer {Interval = 3000, AutoReset = false };
 
         private readonly Timer _pingTimer = new Timer {Interval = 30000, AutoReset = true};
 
@@ -229,13 +229,13 @@ namespace PksUdp.Client
             var utf8 = Encoding.UTF8.GetBytes(sprava.Sprava);
             if (sprava.FragmentSize >= utf8.Length + 10)
             {
-                var fragment = new byte[sprava.Sprava.Length + 10];
+                var fragment = new byte[utf8.Length + 10];
                 fragment[0] = 0x7E;
                 fragment[fragment.Length - 1] = 0x7E;
                 fragment.SetFragmentId(pksClientLastMessage.PaketId);
                 fragment.SetPaketType(Extensions.Type.Message);
                 //Encoding.UTF8.GetBytes(sprava.Sprava, 0, sprava.Sprava.Length, fragment, Extensions.FragmentDataIndex);
-                for (var i = 0; i < fragment.Length - 10; i++)
+                for (var i = 0; i < utf8.Length; i++)
                 {
                     fragment[Extensions.FragmentDataIndex + i] = utf8[i];
                 }
@@ -259,13 +259,16 @@ namespace PksUdp.Client
                     fragment[Extensions.FragmentDataf0Index + i] = utf8[i];
                 }
                 //Encoding.UTF8.GetBytes(sprava.Sprava, 0, fragment.Length - 18, fragment, Extensions.FragmentDataf0Index);
-                fragment.SetFragmentCount((uint)(utf8.Length - (fragment.Length - 18) / (sprava.FragmentSize - 14)) + 1);
+                var zostava = utf8.Length - (fragment.Length - 18);
+                var velkost = sprava.FragmentSize - 14;
+                var count = (uint) ((zostava + velkost - 1)/velkost);
+                fragment.SetFragmentCount(count);
                 fragment.CreateChecksum();
 
                 pksClientLastMessage.fragments.Add(fragment);
 
                 var offset = fragment.Length - 18;
-                while (utf8.Length - offset > sprava.FragmentSize - 14)
+                while (utf8.Length - offset > velkost)
                 {
                     fragment = new byte[sprava.FragmentSize];
                     fragment[0] = 0x7E;
@@ -279,12 +282,12 @@ namespace PksUdp.Client
                     {
                         fragment[Extensions.FragmentDatafIndex + i] = utf8[offset + i];
                     }
-                    offset += sprava.FragmentSize - 14;
+                    offset += velkost;
                     fragment.CreateChecksum();
                     pksClientLastMessage.fragments.Add(fragment);
                 }
 
-                fragment = new byte[14 + (sprava.Sprava.Length - offset)];
+                fragment = new byte[14 + (utf8.Length - offset)];
                 fragment[0] = 0x7E;
                 fragment[fragment.Length - 1] = 0x7E;
                 fragment.SetFragmentId(pksClientLastMessage.PaketId);
@@ -335,7 +338,7 @@ namespace PksUdp.Client
 
         private void ResendMessageFragments(MessageFragments message, int order)
         {
-            if (message.FragmentCount < order)
+            if (message.FragmentCount <= order)
                 return;
 
             _pksClient.Socket.Client.Send(message.fragments[order]);
