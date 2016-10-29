@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 using Timer = System.Timers.Timer;
 
@@ -106,6 +107,8 @@ namespace PksUdp.Client
                         {
                             SendFragments();
                         }
+                        if (task.Status != TaskStatus.Running && !task.IsCompleted && !task.IsFaulted)
+                            break;
                     }
                 }
             }
@@ -129,35 +132,23 @@ namespace PksUdp.Client
                 _pingTimer.Stop();
                 _recieveTimer.Stop();
                 _connected = false;
-                if (_pksClient?.Socket != null)
+                if (_pksClient?.Socket?.Client != null && _pksClient.Socket.Client.Connected)
                 {
-                    if (_pksClient.Socket.Client != null && _pksClient.Socket.Client.Connected)
+                    try
+                    {
+                        data = Extensions.DisconnectedPaket();
+                        _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
+                    }
+                    finally
                     {
                         try
                         {
-                            data = Extensions.DisconnectedPaket();
-                            _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
+                            _pksClient.Socket.Client.Disconnect(true);
                         }
-                        finally
+                        catch
                         {
-                            try
-                            {
-                                _pksClient.Socket.Client.Disconnect(true);
-                            }
-                            catch
-                            {
-                                // ignored
-                            }
+                            // ignored
                         }
-                    }
-                    try
-                    {
-                        _pksClient.Socket.Close();
-                        _pksClient.Socket.Dispose();
-                    }
-                    catch
-                    {
-                        // ignored
                     }
                 }
             }

@@ -62,12 +62,14 @@ namespace PksUdp.Client
         /// Local (Listener) UDP Socket.
         /// </summary>
         internal UdpClient Socket;
+
         /// <summary>
         /// Thread for handling packets.
         /// </summary>
         private Thread _listener;
 
         private int? _lastPort;
+
         /// <summary>
         /// Local (Listener) Port.
         /// </summary>
@@ -75,7 +77,7 @@ namespace PksUdp.Client
         /// <exception cref="System.Net.Sockets.SocketException"/>
         public int? Port
         {
-            get { return ((IPEndPoint)Socket?.Client?.LocalEndPoint)?.Port; }
+            get { return ((IPEndPoint) Socket?.Client?.LocalEndPoint)?.Port; }
             set
             {
                 Close();
@@ -154,7 +156,7 @@ namespace PksUdp.Client
 
             try
             {
-                Socket = new UdpClient(_lastPort.Value) { Client = { SendTimeout = 5000, ReceiveTimeout = 60000 } };
+                Socket = new UdpClient(_lastPort.Value) {Client = {SendTimeout = 5000, ReceiveTimeout = 60000}};
             }
             catch (SocketException)
             {
@@ -170,9 +172,16 @@ namespace PksUdp.Client
         /// <exception cref="System.Net.Sockets.SocketException"/>
         public void Close()
         {
-            if(_listener != null && _listener.IsAlive)
+            if (_listener != null && _listener.IsAlive)
                 _listener.Abort();
-            Socket?.Close();
+            try
+            {
+                Socket?.Close();
+            }
+            catch
+            {
+                // ignored
+            }
             lock(PoradovnikLock)
                 Poradovnik.Clear();
         }
