@@ -173,17 +173,40 @@ namespace PksUdp.Client
         public void Close()
         {
             if (_listener != null && _listener.IsAlive)
+            {
                 _listener.Abort();
-            try
-            {
-                Socket?.Close();
+                _listener = null;
             }
-            catch
+
+            if (Socket != null)
             {
-                // ignored
+                if (Socket.Client != null && Socket.Client.Connected)
+                {
+                    try
+                    {
+                        var data = Extensions.DisconnectedPaket();
+                        Socket.Client.Send(data, data.Length, SocketFlags.None);
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                }
+                try
+                {
+                    Socket.Close();
+                }
+                catch
+                {
+                    // ignored
+                }
+                Socket = null;
             }
-            lock(PoradovnikLock)
+
+            lock (PoradovnikLock)
+            {
                 Poradovnik.Clear();
+            }
         }
     }
 }

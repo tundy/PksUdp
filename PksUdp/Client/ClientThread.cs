@@ -127,37 +127,6 @@ namespace PksUdp.Client
                 _pingTimer.Stop();
                 _recieveTimer.Stop();
                 _connected = false;
-                if (_pksClient?.Socket != null)
-                {
-                    if (_pksClient.Socket.Client != null && _pksClient.Socket.Client.Connected)
-                    {
-                        try
-                        {
-                            data = Extensions.DisconnectedPaket();
-                            _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
-                        }
-                        finally
-                        {
-                            try
-                            {
-                                _pksClient.Socket.Client.Disconnect(true);
-                            }
-                            catch
-                            {
-                                // ignored
-                            }
-                        }
-                    }
-                    try
-                    {
-                        _pksClient.Socket.Close();
-                        _pksClient.Socket.Dispose();
-                    }
-                    catch
-                    {
-                        // ignored
-                    }
-                }
             }
         }
 
