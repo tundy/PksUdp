@@ -25,6 +25,14 @@ namespace PksUdp.Client
         {
             NoServerResponse?.Invoke();
         }
+
+        public event ServerHandler ClientError;
+        internal virtual void OnClientError()
+        {
+            ClientError?.Invoke();
+            Close();
+        }
+
         public event SocketExceptionHandler SocketException;
         internal virtual void OnSocketException(SocketException e)
         {

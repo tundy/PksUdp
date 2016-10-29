@@ -17,6 +17,7 @@ namespace PksUdp.Client
         private readonly PksClient _pksClient;
 
         private bool _connected;
+        private PaketFragments _lastMessage;
 
         /// <summary>
         /// Timer pre znovu vyziadanie fragmentov.
@@ -45,12 +46,9 @@ namespace PksUdp.Client
 
         private void _recieveTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            lock (_pksClient.LastMessageLock)
-            {
-                if (_pksClient.lastMessage == null) return;
-                _pksClient.OnReceivedMessage(_pksClient.lastMessage.PaketId, false);
-                _pksClient.lastMessage = null;
-            }
+            if (_lastMessage == null) return;
+            _pksClient.OnReceivedMessage(_lastMessage.PaketId, false);
+            _lastMessage = null;
         }
 
 
@@ -63,26 +61,52 @@ namespace PksUdp.Client
                 data = Extensions.ConnectedPaket();
                 _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
                 _pingTimer.Start();
-                var rcv = _pksClient.EndPoint;
 
                 // Here will be saved information about UDP sender.
                 for (;;)
                 {
                     _recieveTimer.Start();
 
-                    var bytes = _pksClient.Socket.Receive(ref rcv);
-
-                    _recieveTimer.Stop();
-
-                    if (_connected)
+                    var task = _pksClient.Socket.ReceiveAsync();
+                    while (true)
                     {
-                        if (!rcv.Equals(_pksClient.EndPoint))
+                        if (task.IsFaulted)
                         {
-                            continue;
+                            task.Wait();
+                            if (task.Exception != null) throw task.Exception;
+                            break;
+                        }
+                        if (task.IsCompleted)
+                        {
+                            _recieveTimer.Stop();
+
+                            task.Wait();
+                            if (task.IsFaulted)
+                            {
+                                if (task.Exception != null) throw task.Exception;
+                                break;
+                            }
+
+                            var bytes = task.Result.Buffer;
+                            var rcv = task.Result.RemoteEndPoint;
+
+                            if (_connected)
+                            {
+                                if (!rcv.Equals(_pksClient.EndPoint))
+                                {
+                                    break;
+                                }
+                            }
+
+                            DecodePaket(bytes, rcv);
+                            break;
+                        }
+
+                        if (_lastMessage == null)
+                        {
+                            SendFragments();
                         }
                     }
-
-                    DecodePaket(bytes, rcv);
                 }
             }
             catch (ThreadAbortException)
@@ -91,6 +115,14 @@ namespace PksUdp.Client
             catch (SocketException ex)
             {
                 _pksClient.OnSocketException(ex);
+            }
+            catch (Exception ex)
+            {
+                var exception = ex.InnerException as SocketException;
+                if(exception != null)
+                    _pksClient.OnSocketException(exception);
+                else
+                    _pksClient.OnClientError();
             }
             finally
             {
@@ -151,13 +183,9 @@ namespace PksUdp.Client
 
             if (type == Extensions.Type.Ping) return;
 
-            lock (_pksClient.LastMessageLock)
-            { 
-                if (_pksClient.lastMessage == null)
-                {
-                    SendFragments();
-                    return;
-                }
+            if (_lastMessage == null)
+            {
+                return;
             }
 
             switch (type)
@@ -166,20 +194,14 @@ namespace PksUdp.Client
                     ResendFragments(bytes);
                     return;
                 case Extensions.Type.SuccessFull:
-                    lock (_pksClient.LastMessageLock)
-                    {
-                        if (ZleId(bytes)) return;
-                        _pksClient.OnReceivedMessage(_pksClient.lastMessage.PaketId, true);
-                        _pksClient.lastMessage = null;
-                    }
+                    if (ZleId(bytes)) return;
+                    _pksClient.OnReceivedMessage(_lastMessage.PaketId, true);
+                    _lastMessage = null;
                     return;
                 case Extensions.Type.Fail:
-                    lock (_pksClient.LastMessageLock)
-                    {
-                        if (ZleId(bytes)) return;
-                        _pksClient.OnReceivedMessage(_pksClient.lastMessage.PaketId, false);
-                        _pksClient.lastMessage = null;
-                    }
+                    if (ZleId(bytes)) return;
+                    _pksClient.OnReceivedMessage(_lastMessage.PaketId, false);
+                    _lastMessage = null;
                     return;
                 default:
                     return;
@@ -202,9 +224,9 @@ namespace PksUdp.Client
             if (odoslanie != null)
             {
 
-                _pksClient.lastMessage = new MessageFragments(new PaketId());
-                RozdelSpravuNaFragmenty((MessageFragments)_pksClient.lastMessage, odoslanie);
-                foreach (var fragment in ((MessageFragments)_pksClient.lastMessage).fragments)
+                _lastMessage = new MessageFragments(new PaketId());
+                RozdelSpravuNaFragmenty((MessageFragments)_lastMessage, odoslanie);
+                foreach (var fragment in ((MessageFragments)_lastMessage).fragments)
                 {
                     _pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
                 }
@@ -263,7 +285,7 @@ namespace PksUdp.Client
                     pksClientLastMessage.fragments.Add(fragment);
                 }
 
-                fragment = new byte[sprava.FragmentSize - (sprava.Sprava.Length - offset)];
+                fragment = new byte[14 + (sprava.Sprava.Length - offset)];
                 fragment[0] = 0x7E;
                 fragment[fragment.Length - 1] = 0x7E;
                 fragment.SetFragmentId(pksClientLastMessage.PaketId);
@@ -279,14 +301,7 @@ namespace PksUdp.Client
         private bool ZleId(byte[] bytes)
         {
             var id = bytes.GetFragmentId();
-            lock (_pksClient.LastMessageLock)
-            {
-                if (!id.Equals(_pksClient.lastMessage.PaketId))
-                {
-                    return true;
-                }
-            }
-            return false;
+            return !id.Equals(_lastMessage.PaketId);
         }
 
         private static bool CheckFragment(byte[] bytes)
@@ -300,19 +315,16 @@ namespace PksUdp.Client
                 return;
 
             var order = bytes.GetFragmentOrder();
-            lock (_pksClient.LastMessageLock)
+            var file = _lastMessage as FileFragments;
+            if (file != null)
             {
-                var file = _pksClient.lastMessage as FileFragments;
-                if (file != null)
-                {
-                    ResendFileFragments(file, order);
-                    return;
-                }
-                var message = _pksClient.lastMessage as MessageFragments;
-                if (message != null)
-                {
-                    ResendMessageFragments(message, (int) order);
-                }
+                ResendFileFragments(file, order);
+                return;
+            }
+            var message = _lastMessage as MessageFragments;
+            if (message != null)
+            {
+                ResendMessageFragments(message, (int) order);
             }
         }
 

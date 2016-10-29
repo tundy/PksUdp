@@ -23,20 +23,11 @@ namespace PksUdp
 
         public PaketId(IReadOnlyList<byte> data, int index)
         {
-            UnixTime = (data[index++] >> 24) & 0xFF;
-            UnixTime |= (data[index++] >> 16) & 0xFF;
-            UnixTime |= (data[index++] >> 8) & 0xFF;
-            UnixTime |= data[index++] & 0xFF;
+            UnixTime = data[index++] << 24;
+            UnixTime |= data[index++] << 16;
+            UnixTime |= data[index++] << 8;
+            UnixTime |= data[index++];
             Id = data[index];
-        }
-
-        public PaketId(IReadOnlyList<byte> data)
-        {
-            UnixTime = (data[0] >> 24) & 0xFF;
-            UnixTime |= (data[1] >> 16) & 0xFF;
-            UnixTime |= (data[2] >> 8) & 0xFF;
-            UnixTime |= data[3] & 0xFF;
-            Id = data[4];
         }
 
         public PaketId(int unixTime, byte id)

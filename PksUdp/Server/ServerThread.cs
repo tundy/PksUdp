@@ -97,6 +97,7 @@ namespace PksUdp.Server
 
         private void _recieveTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
+            if (_lastFragmentType == Extensions.Type.Nothing) return;
             if (_attemp++ < MaxRetry)
             {
                 AskForFragments();
@@ -178,7 +179,7 @@ namespace PksUdp.Server
                         }
                         if (bytes != null)
                         {
-                            _pksServer.Socket.SendAsync(bytes, bytes.Length, sender);
+                            _pksServer.Socket.Send(bytes, bytes.Length, sender);
                             continue;
                         }
                         if (_lastFragmentType == Extensions.Type.Nothing)
@@ -199,8 +200,6 @@ namespace PksUdp.Server
                     {
                         continue;
                     }
-                    _lastFragmentType = type;
-
                     if (type == Extensions.Type.Ping)
                     {
                         continue;
@@ -216,11 +215,12 @@ namespace PksUdp.Server
                     switch (type)
                     {
                         case Extensions.Type.Message:
+                            _lastFragmentType = Extensions.Type.Message;
                             SpracujSpravu(bytes, id, sender);
                             break;
                         case Extensions.Type.File:
+                            _lastFragmentType = Extensions.Type.File;
                             SpracujSubor(bytes, id, sender);
-                            _lastFragmentType = Extensions.Type.Nothing;
                             break;
                         default:
                             _lastFragmentType = Extensions.Type.Nothing;
@@ -252,6 +252,15 @@ namespace PksUdp.Server
                         throw;
                     }
                 }
+                finally
+                {
+                    lock (_clientLock)
+                    {
+                        Client = null;
+                    }
+                    _pingTimer.Stop();
+                    _recieveTimer.Stop();
+                }
             }
         }
 
@@ -273,8 +282,8 @@ namespace PksUdp.Server
                 if (type == Extensions.Type.Connect)
                 {
                     var data = Extensions.ConnectedPaket();
-                    _pksServer.Socket.SendAsync(data, data.Length, client);
-                    _pksServer.Socket.SendAsync(data, data.Length, client);
+                    _pksServer.Socket.Send(data, data.Length, client);
+                    _pksServer.Socket.Send(data, data.Length, client);
                     Client = client;
                     ResetCounter();
                     _pksServer.OnClientConnected(client);
@@ -409,7 +418,7 @@ namespace PksUdp.Server
         private void SpojFragmentySpravy(PaketId id, IPEndPoint sender)
         {
             var data = PksServer.SuccessPaket(id, (uint)_fragmentCount);
-            _pksServer.Socket.SendAsync(data, data.Length, sender);
+            _pksServer.Socket.Send(data, data.Length, sender);
 
             var sb = new StringBuilder();
             for (long i = 0; i < _fragments.LongCount(); i++)
@@ -436,7 +445,7 @@ namespace PksUdp.Server
         private void SpracujNefragmentovanuSpravu(byte[] bytes, PaketId id, IPEndPoint sender)
         {
             var data = PksServer.SuccessPaket(id, (uint) _fragmentCount);
-            _pksServer.Socket.SendAsync(data, data.Length, sender);
+            _pksServer.Socket.Send(data, data.Length, sender);
             _pksServer.OnReceivedMessage(sender, new Message
             {
                 Text =
@@ -482,7 +491,7 @@ namespace PksUdp.Server
 
             ResetCounter();
             var data = PksServer.CancelPaket(id);
-            _pksServer.Socket.SendAsync(data, data.Length, sender);
+            _pksServer.Socket.Send(data, data.Length, sender);
         }
 
         /// <summary>

@@ -37,6 +37,17 @@ namespace PksGui
             _pksClient.ReceivedMessage += _pksClient_ReceivedMessage;
             _pksClient.SocketException += _pksClient_SocketException;
             _pksClient.NoServerResponse += _pksClient_NoServerResponse;
+            _pksClient.ClientError += _pksClient_ClientError;
+        }
+
+        private void _pksClient_ClientError()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Output.AppendTextAndScroll($"{DateTime.Now}: Prerusilo sa spojenie zo serverom{Environment.NewLine}");
+                if (!_lastStateServer)
+                    ResetControls();
+            });
         }
 
         private void _pksClient_NoServerResponse()

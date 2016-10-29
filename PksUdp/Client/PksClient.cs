@@ -38,7 +38,6 @@ namespace PksUdp.Client
             }
         }
 
-        internal PaketFragments lastMessage = null;
 
         internal readonly Queue<NaOdoslanie> Poradovnik = new Queue<NaOdoslanie>();
         internal readonly object PoradovnikLock = new object();
@@ -86,7 +85,6 @@ namespace PksUdp.Client
         }
 
         internal IPEndPoint EndPoint;
-        internal readonly object LastMessageLock = new object();
 
         /// <summary>
         /// Create communicator.
