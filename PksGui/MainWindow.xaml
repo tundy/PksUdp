@@ -42,7 +42,7 @@
             </Border>
             <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
                 <WrapPanel>
-                    <TextBlock Margin="5" Text="Velkost fragmentu:"/>
+                    <TextBlock Margin="5" Text="Maximalna velkost fragmentu:"/>
                     <TextBox IsEnabled="False" x:Name="FragmentSize" x:FieldModifier="private" local:Masking.Mask="^[0-9]*$" Margin="5" HorizontalContentAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" MaxLength="5" Text="1000" MinWidth="38"/>
                 </WrapPanel>
             </Border>
@@ -70,7 +70,7 @@
                     <CheckBox Grid.Row="1" Margin="5" Content="Chybny fragment" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
                     <Button Grid.Row="2" Content="Odoslat spravu" Margin="5" VerticalAlignment="Center" VerticalContentAlignment="Center" Click="Button_Click_1"/>
                 </Grid>
-                <TextBox x:Name="Input" x:FieldModifier="private" AcceptsReturn="True" MaxHeight="150" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible" Margin="5" DockPanel.Dock="Left" VerticalAlignment="Stretch" VerticalContentAlignment="Top" SpellCheck.IsEnabled="True"/>
+                <TextBox x:Name="Input" x:FieldModifier="private" AcceptsReturn="True" MaxHeight="150" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible" Margin="5" DockPanel.Dock="Left" VerticalAlignment="Stretch" VerticalContentAlignment="Top" SpellCheck.IsEnabled="True" PreviewKeyDown="Input_PreviewKeyDown"/>
             </DockPanel>
             <DockPanel>
                 <Button Content="Odoslat subor" Margin="5" DockPanel.Dock="Right" VerticalAlignment="Center" VerticalContentAlignment="Center"/>

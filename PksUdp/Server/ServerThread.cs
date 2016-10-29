@@ -62,7 +62,7 @@ namespace PksUdp.Server
         /// <summary>
         /// Timer pre znovu vyziadanie fragmentov.
         /// </summary>
-        private readonly Timer _recieveTimer = new Timer { Interval = 500, AutoReset = false};
+        private readonly Timer _recieveTimer = new Timer { Interval = 1000, AutoReset = false};
         private readonly Timer _pingTimer = new Timer { Interval = 30000, AutoReset = true};
         private IPEndPoint _client;
 

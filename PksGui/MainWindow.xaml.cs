@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Windows;
+using System.Windows.Input;
 using PksUdp;
 using PksUdp.Client;
 using PksUdp.Server;
@@ -257,6 +258,13 @@ namespace PksGui
         {
             _pksServer?.Close();
             _pksClient?.Close();
+        }
+
+        private void Input_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter || Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) return;
+            Button_Click_1(sender, e);
+            e.Handled = true;
         }
     }
 
