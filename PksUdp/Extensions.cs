@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PksUdp
 {
@@ -13,7 +9,7 @@ namespace PksUdp
             var data = new byte[5];
             data[0] = 0x7E;
             data[4] = 0x7E;
-            data.SetPaketType(Extensions.Type.Ping);
+            data.SetPaketType(Type.Ping);
             data.CreateChecksum();
             return data;
         }
@@ -43,8 +39,8 @@ namespace PksUdp
         private const int FragmentOrderIndex = 7;
         private const int FragmentCountIndex = 11;
         internal const int FragmentDataIndex = 7;
-        internal const int FragmentDataf0Index = 11;
-        internal const int FragmentDatafIndex = 15;
+        internal const int FragmentDataf0Index = 15;
+        internal const int FragmentDatafIndex = 11;
 
         public static int ToUnixTime(this DateTime dateTime)
         {

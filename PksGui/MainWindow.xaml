@@ -68,7 +68,7 @@
                         <RowDefinition Height="auto"/>
                     </Grid.RowDefinitions>
                     <CheckBox Grid.Row="1" Margin="5" Content="Chybny fragment" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
-                    <Button Grid.Row="2" Content="Odoslat spravu" Margin="5" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+                    <Button Grid.Row="2" Content="Odoslat spravu" Margin="5" VerticalAlignment="Center" VerticalContentAlignment="Center" Click="Button_Click_1"/>
                 </Grid>
                 <TextBox x:Name="Input" x:FieldModifier="private" AcceptsReturn="True" MaxHeight="150" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible" Margin="5" DockPanel.Dock="Left" VerticalAlignment="Stretch" VerticalContentAlignment="Top" SpellCheck.IsEnabled="True"/>
             </DockPanel>

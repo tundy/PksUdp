@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Timers;
+using Timer = System.Timers.Timer;
 
 namespace PksUdp.Client
 {
@@ -11,18 +12,18 @@ namespace PksUdp.Client
         /// <summary>
         /// Udp Socket.
         /// </summary>
-        private readonly Client.PksClient _pksClient;
+        private readonly PksClient _pksClient;
 
-        private bool _connected = false;
+        private bool _connected;
 
         /// <summary>
         /// Timer pre znovu vyziadanie fragmentov.
         /// </summary>
-        private readonly System.Timers.Timer _recieveTimer = new System.Timers.Timer {Interval = 500, AutoReset = false};
+        private readonly Timer _recieveTimer = new Timer {Interval = 500, AutoReset = false};
 
-        private readonly System.Timers.Timer _pingTimer = new System.Timers.Timer {Interval = 30000, AutoReset = true};
+        private readonly Timer _pingTimer = new Timer {Interval = 30000, AutoReset = true};
 
-        public ClientListener(Client.PksClient pksClient)
+        public ClientListener(PksClient pksClient)
         {
             _pksClient = pksClient;
             _recieveTimer.Elapsed += _recieveTimer_Elapsed;
@@ -142,20 +143,11 @@ namespace PksUdp.Client
 
             if (NoConnection(type)) return;
 
+            if (type == Extensions.Type.Ping) return;
+
             if (_pksClient.lastMessage == null)
             {
                 return;
-                /*switch (type)
-                {
-                    case Extensions.Type.Message:
-                        _pksClient.lastMessage = new MessageFragments(id);
-                        break;
-                    case Extensions.Type.File:
-                        _pksClient.lastMessage = new FileFragments(id);
-                        break;
-                    default:
-                        break;
-                }*/
             }
 
             var id = bytes.GetFragmentId();
@@ -166,8 +158,6 @@ namespace PksUdp.Client
 
             switch (type)
             {
-                case Extensions.Type.Ping:
-                    return;
                 case Extensions.Type.RetryFragment:
                     ResendFragments(bytes);
                     return;

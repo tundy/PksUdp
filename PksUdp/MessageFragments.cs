@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PksUdp
 {
@@ -11,7 +7,7 @@ namespace PksUdp
     {
         internal readonly List<byte[]> fragments = new List<byte[]>();
         internal override uint FragmentCount => (uint)fragments.LongCount();
-        internal override uint FragmentLength => (uint)fragments.Last().LongLength;
+        internal override uint FragmentLength => (uint)fragments.First().LongLength;
 
         public MessageFragments(PaketId paketId) : base(paketId)
         {

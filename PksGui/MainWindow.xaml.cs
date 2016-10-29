@@ -1,22 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+using System.Net.Sockets;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using PksUdp;
-using PksClient = PksUdp.Client.PksClient;
-using PksServer = PksUdp.Server.PksServer;
+using PksUdp.Client;
+using PksUdp.Server;
 
 namespace PksGui
 {
@@ -61,7 +49,7 @@ namespace PksGui
             });
         }
 
-        private void _pksClient_SocketException(System.Net.Sockets.SocketException e)
+        private void _pksClient_SocketException(SocketException e)
         {
             Dispatcher.Invoke(() =>
             {
@@ -89,11 +77,13 @@ namespace PksGui
 
         private void _pksClient_ClientConnected()
         {
-            Output.Dispatcher.Invoke(() => { Output.AppendTextAndScroll($"{DateTime.Now}: Vzniklo spojenie zo serverom{Environment.NewLine}"); });
-            InputPanel.Dispatcher.Invoke(() => { InputPanel.IsEnabled = true; }); 
+            Dispatcher.Invoke(() => {
+                Output.AppendTextAndScroll($"{DateTime.Now}: Vzniklo spojenie zo serverom{Environment.NewLine}");
+                InputPanel.IsEnabled = true;
+            }); 
         }
 
-        private void PksServerReceivedMessage(System.Net.IPEndPoint endPoint, Message message)
+        private void PksServerReceivedMessage(IPEndPoint endPoint, Message message)
         {
            Output.Dispatcher.Invoke(() => {
                Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}:{Environment.NewLine}");
@@ -105,16 +95,16 @@ namespace PksGui
            });
         }
 
-        private void PksServerClientDisconnected(System.Net.IPEndPoint endPoint)
+        private void PksServerClientDisconnected(IPEndPoint endPoint)
         {
             Output.Dispatcher.Invoke(() => { Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Client disconnected{Environment.NewLine}"); });
         }
 
-        private void PksServerClientConnected(System.Net.IPEndPoint endPoint)
+        private void PksServerClientConnected(IPEndPoint endPoint)
         {
             Output.Dispatcher.Invoke(() => { Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Client connected{Environment.NewLine}"); });
         }
-        private void PksServerClientTimedOud(System.Net.IPEndPoint endPoint)
+        private void PksServerClientTimedOud(IPEndPoint endPoint)
         {
             Output.Dispatcher.Invoke(() => { Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Client Timedout{Environment.NewLine}"); });
         }
@@ -238,6 +228,18 @@ namespace PksGui
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             Output.Clear();
+        }
+
+        private void Button_Click_1(object sender, RoutedEventArgs e)
+        {
+            int size;
+            if (!int.TryParse(FragmentSize.Text, out size) || size > 65470)
+            {
+                Output.AppendTextAndScroll($"Nepodarilo sa nacitat velkost fragmentu.{Environment.NewLine}");
+                return;
+            }
+
+            _pksClient.SendMessage(Input.Text, size);
         }
     }
 

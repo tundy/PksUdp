@@ -10,13 +10,19 @@ namespace PksUdp.Client
     {
         internal abstract class NaOdoslanie
         {
+            internal readonly int FragmentSize;
+
+            protected NaOdoslanie(int fragmentSize)
+            {
+                FragmentSize = fragmentSize;
+            }
         }
 
         internal class SpravaNaOdoslanie : NaOdoslanie
         {
-            internal readonly string Sprava;
+            internal string Sprava;
 
-            public SpravaNaOdoslanie(string sprava)
+            public SpravaNaOdoslanie(string sprava, int fragmentSize) : base(fragmentSize)
             {
                 Sprava = sprava;
             }
@@ -26,7 +32,7 @@ namespace PksUdp.Client
         {
             internal readonly string Path;
 
-            public SuborNaOdoslanie(string path)
+            public SuborNaOdoslanie(string path, int fragmentSize) : base(fragmentSize)
             {
                 Path = path;
             }
@@ -37,19 +43,19 @@ namespace PksUdp.Client
         internal readonly Queue<NaOdoslanie> Poradovnik = new Queue<NaOdoslanie>();
         internal readonly object PoradovnikLock = new object();
 
-        public void SendMessage(string text)
+        public void SendMessage(string text, int fragmentSize)
         {
             lock (PoradovnikLock)
             {
-                Poradovnik.Enqueue(new SpravaNaOdoslanie(text));
+                Poradovnik.Enqueue(new SpravaNaOdoslanie(text, fragmentSize));
             }
         }
 
-        public void SendFile(string path)
+        public void SendFile(string path, int fragmentSize)
         {
             lock (PoradovnikLock)
             {
-                Poradovnik.Enqueue(new SuborNaOdoslanie(path));
+                Poradovnik.Enqueue(new SuborNaOdoslanie(path, fragmentSize));
             }
         }
 
@@ -125,7 +131,14 @@ namespace PksUdp.Client
                 Name = $"UdpClient Listener {Port} - {endPoint}",
                 Priority = ThreadPriority.AboveNormal
             };
+            _sender = new Thread(new ClientSender(this).SenderLoop)
+            {
+                IsBackground = true,
+                Name = $"UdpClient Sender {Port} - {endPoint}",
+                Priority = ThreadPriority.AboveNormal
+            };
             _listener.Start();
+            _sender.Start();
         }
 
         public void Connect(IPEndPoint endPoint)

@@ -1,5 +1,3 @@
-using System;
-
 namespace PksUdp
 {
     public class Packet

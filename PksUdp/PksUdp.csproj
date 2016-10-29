@@ -41,6 +41,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Client\ClientSender.cs" />
     <Compile Include="Client\ClientListener.cs" />
     <Compile Include="FileFragments.cs" />
     <Compile Include="MessageFragments.cs" />

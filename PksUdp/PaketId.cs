@@ -50,5 +50,25 @@ namespace PksUdp
             UnixTime = (int)time.ToUnixTimeSeconds();
             Id = id;
         }
+
+        private static DateTime _lastDate = DateTime.Now;
+        private static byte _id;
+
+        public PaketId()
+        {
+            var now = DateTime.Now;
+            if (_lastDate.Equals(now))
+            {
+                ++_id;
+            }
+            else
+            {
+                _lastDate = now;
+                _id = 0;
+            }
+
+            UnixTime = (int)((DateTimeOffset)_lastDate).ToUnixTimeSeconds();
+            Id = _id;
+        }
     }
 }

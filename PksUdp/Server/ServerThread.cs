@@ -5,6 +5,8 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
+using Timer = System.Timers.Timer;
 
 namespace PksUdp.Server
 {
@@ -22,7 +24,7 @@ namespace PksUdp.Server
         /// <summary>
         /// Udp Socket.
         /// </summary>
-        private readonly Server.PksServer _pksServer;
+        private readonly PksServer _pksServer;
 
         private readonly object _fragmentLock = new object();
         private readonly object _clientLock = new object();
@@ -60,18 +62,18 @@ namespace PksUdp.Server
         /// <summary>
         /// Timer pre znovu vyziadanie fragmentov.
         /// </summary>
-        private readonly System.Timers.Timer _recieveTimer = new System.Timers.Timer { Interval = 500, AutoReset = false};
-        private readonly System.Timers.Timer _pingTimer = new System.Timers.Timer { Interval = 30000, AutoReset = true};
+        private readonly Timer _recieveTimer = new Timer { Interval = 500, AutoReset = false};
+        private readonly Timer _pingTimer = new Timer { Interval = 30000, AutoReset = true};
         private IPEndPoint _client;
 
-        internal ServerThread(Server.PksServer pksServer)
+        internal ServerThread(PksServer pksServer)
         {
             _pksServer = pksServer;
             _recieveTimer.Elapsed += _recieveTimer_Elapsed;
             _pingTimer.Elapsed += _pingTimer_Elapsed; ;
         }
 
-        private void _pingTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        private void _pingTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             PingClient();
         }
@@ -93,7 +95,7 @@ namespace PksUdp.Server
             }
         }
 
-        private void _recieveTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        private void _recieveTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             if (_attemp++ < MaxRetry)
             {
@@ -121,7 +123,7 @@ namespace PksUdp.Server
                 {
                     if (_fragments.LongCount() == 0 || _fragmentCount == -1)
                     {
-                        var data = Server.PksServer.RetryPaket();
+                        var data = PksServer.RetryPaket();
                         sendList.Add(_pksServer.Socket.SendAsync(data, data.Length, Client));
                     }
                     else
@@ -130,7 +132,7 @@ namespace PksUdp.Server
                         for (long i = 0; missing > 0 && i < _fragmentCount; i++)
                         {
                             if (_fragments.ContainsKey((uint) i)) continue;
-                            var data = Server.PksServer.RetryFragment(_lastId, (uint)i);
+                            var data = PksServer.RetryFragment(_lastId, (uint)i);
                             sendList.Add(_pksServer.Socket.SendAsync(data, data.Length, Client));
                             --missing;
                         }
@@ -171,7 +173,7 @@ namespace PksUdp.Server
                         {
                             if (_client == null)
                             {
-                                bytes = Server.PksServer.FailPaket();
+                                bytes = PksServer.FailPaket();
                             }
                         }
                         if (bytes != null)
@@ -406,7 +408,7 @@ namespace PksUdp.Server
         /// <param name="sender">client</param>
         private void SpojFragmentySpravy(PaketId id, IPEndPoint sender)
         {
-            var data = Server.PksServer.SuccessPaket(id, (uint)_fragmentCount);
+            var data = PksServer.SuccessPaket(id, (uint)_fragmentCount);
             _pksServer.Socket.SendAsync(data, data.Length, sender);
 
             var sb = new StringBuilder();
@@ -433,7 +435,7 @@ namespace PksUdp.Server
         /// <param name="sender">Client</param>
         private void SpracujNefragmentovanuSpravu(byte[] bytes, PaketId id, IPEndPoint sender)
         {
-            var data = Server.PksServer.SuccessPaket(id, (uint) _fragmentCount);
+            var data = PksServer.SuccessPaket(id, (uint) _fragmentCount);
             _pksServer.Socket.SendAsync(data, data.Length, sender);
             _pksServer.OnReceivedMessage(sender, new Message
             {
@@ -468,7 +470,7 @@ namespace PksUdp.Server
                     });
                     break;
                 case Extensions.Type.File:
-                    _pksServer.OnReceivedFile(sender, new FilePacket()
+                    _pksServer.OnReceivedFile(sender, new FilePacket
                     {
                         Error = true,
                         FragmentsCount = count,
@@ -479,7 +481,7 @@ namespace PksUdp.Server
             }
 
             ResetCounter();
-            var data = Server.PksServer.CancelPaket(id);
+            var data = PksServer.CancelPaket(id);
             _pksServer.Socket.SendAsync(data, data.Length, sender);
         }
 
