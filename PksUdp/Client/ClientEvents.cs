@@ -14,6 +14,12 @@ namespace PksUdp.Client
             ReceivedMessage?.Invoke(id, success);
         }
 
+        public event ReceivedMessageHandler ReceivedFile;
+        internal virtual void OnReceivedFile(PaketId id, bool success)
+        {
+            ReceivedFile?.Invoke(id, success);
+        }
+
         public event ServerHandler ClientConnected;
         internal virtual void OnClientConnected()
         {

@@ -48,18 +48,24 @@ namespace PksUdp.Client
         private void _recieveTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             if (_lastMessage == null) return;
-            _pksClient.OnReceivedMessage(_lastMessage.PaketId, false);
+            if (_lastMessage is FileFragments)
+            {
+                _pksClient.OnReceivedFile(_lastMessage.PaketId, false);
+            }
+            else
+            {
+                _pksClient.OnReceivedMessage(_lastMessage.PaketId, false);
+            }
             _lastMessage = null;
         }
 
 
         internal void RecieveLoop()
         {
-            byte[] data;
             try
             {
                 _pksClient.Socket.Connect(_pksClient.EndPoint);
-                data = Extensions.ConnectedPaket();
+                var data = Extensions.ConnectedPaket();
                 _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
                 _pingTimer.Start();
 
@@ -69,7 +75,7 @@ namespace PksUdp.Client
                     _recieveTimer.Start();
 
                     var task = _pksClient.Socket.ReceiveAsync();
-                    while (true)
+                    for(;;)
                     {
                         if (task.IsFaulted)
                         {
@@ -163,12 +169,26 @@ namespace PksUdp.Client
                     return;
                 case Extensions.Type.SuccessFull:
                     if (ZleId(bytes)) return;
-                    _pksClient.OnReceivedMessage(_lastMessage.PaketId, true);
+                    if (_lastMessage is FileFragments)
+                    {
+                        _pksClient.OnReceivedFile(_lastMessage.PaketId, true);
+                    }
+                    else
+                    {
+                        _pksClient.OnReceivedMessage(_lastMessage.PaketId, true);
+                    }
                     _lastMessage = null;
                     return;
                 case Extensions.Type.Fail:
                     if (ZleId(bytes)) return;
-                    _pksClient.OnReceivedMessage(_lastMessage.PaketId, false);
+                    if (_lastMessage is FileFragments)
+                    {
+                        _pksClient.OnReceivedFile(_lastMessage.PaketId, false);
+                    }
+                    else
+                    {
+                        _pksClient.OnReceivedMessage(_lastMessage.PaketId, false);
+                    }
                     _lastMessage = null;
                     return;
                 default:
@@ -218,8 +238,45 @@ namespace PksUdp.Client
                     {
                         return;
                     }
-                    //var size = info.Length - naOdoslanie.Path.Length 
-                    //_lastMessage = new FileFragments(naOdoslanie.Path, , (uint)naOdoslanie.FragmentSize, new PaketId());
+                    var name = Path.GetFileName(naOdoslanie.Path);
+                    var fileName = Encoding.UTF8.GetBytes(name);
+                    var size = info.Length + fileName.Length + 4;
+                    if (size + 10 <= naOdoslanie.FragmentSize)
+                    {
+                        _lastMessage = new FileFragments(naOdoslanie.Path, 0, (uint) naOdoslanie.FragmentSize,
+                            new PaketId());
+
+                        var file = File.ReadAllBytes(naOdoslanie.Path);
+
+                        var fragment = new byte[size + 10];
+                        fragment[0] = 0x7E;
+                        fragment[fragment.Length - 1] = 0x7E;
+                        fragment.SetFragmentId(_lastMessage.PaketId);
+                        fragment.SetPaketType(Extensions.Type.File);
+
+                        fragment[Extensions.FragmentDataIndex] = (byte)(fileName.Length >> 24);
+                        fragment[Extensions.FragmentDataIndex + 1] = (byte)(fileName.Length >> 16);
+                        fragment[Extensions.FragmentDataIndex + 2] = (byte)(fileName.Length >> 8);
+                        fragment[Extensions.FragmentDataIndex + 3] = (byte)fileName.Length;
+
+                        for (var i = 0; i < fileName.Length; i++)
+                        {
+                            fragment[Extensions.FragmentDataIndex + i + 4] = fileName[i];
+                        }
+
+                        for (var i = 0; i < file.Length; i++)
+                        {
+                            fragment[Extensions.FragmentDataIndex + i + 4 + fileName.Length] = file[i];
+                        }
+
+                        fragment.CreateChecksum();
+
+                        _pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
+                    }
+                    else
+                    {
+                        
+                    }
                 }
             }
             _recieveTimer.Start();

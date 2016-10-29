@@ -282,13 +282,18 @@ namespace PksUdp.Server
 
         private void SpracujNefragmentovanySubor(byte[] bytes, PaketId id, IPEndPoint sender)
         {
+            var data = PksServer.SuccessPaket(id, (uint)_fragmentCount);
+            _pksServer.Socket.Send(data, data.Length, sender);
+
             var nameSize = bytes[Extensions.FragmentDataIndex] << 24;
             nameSize |= bytes[Extensions.FragmentDataIndex + 1] << 16;
             nameSize |= bytes[Extensions.FragmentDataIndex + 2] << 8;
             nameSize |= bytes[Extensions.FragmentDataIndex + 3];
             var name = Encoding.UTF8.GetString(bytes, Extensions.FragmentDataIndex + 4, nameSize);
             var file = File.Create(name);
-            file.Write(bytes, Extensions.FragmentDataIndex + 4 + nameSize, bytes.Length - (Extensions.FragmentDataIndex + 4 + nameSize));
+            file.Write(bytes, Extensions.FragmentDataIndex + 4 + nameSize, bytes.Length - (Extensions.FragmentDataIndex + 4 + nameSize) - 3);
+            file.Close();
+            _pksServer.OnReceivedFile(sender, new FilePacket {Error = false, FileInfo = new FileInfo(name), FragmentLength = bytes.Length, FragmentsCount = 1, PaketId = id});
             ResetCounter();
         }
 

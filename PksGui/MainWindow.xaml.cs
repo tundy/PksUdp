@@ -35,12 +35,43 @@ namespace PksGui
             _pksServer.ClientDisconnected += PksServerClientDisconnected;
             _pksServer.ClientTimedOut += PksServerClientTimedOud;
             _pksServer.ReceivedMessage += PksServerReceivedMessage;
+            _pksServer.ReceivedFile += _pksServer_ReceivedFile;
             _pksClient = new PksClient();
             _pksClient.ClientConnected += _pksClient_ClientConnected;
             _pksClient.ReceivedMessage += _pksClient_ReceivedMessage;
+            _pksClient.ReceivedFile += _pksClient_ReceivedFile;
             _pksClient.SocketException += _pksClient_SocketException;
             _pksClient.NoServerResponse += _pksClient_NoServerResponse;
             _pksClient.ClientError += _pksClient_ClientError;
+        }
+
+        private void _pksClient_ReceivedFile(PaketId id, bool success)
+        {
+            if (!success)
+            {
+                Output.Dispatcher.Invoke(() =>
+                {
+                    Output.AppendTextAndScroll($"{DateTime.Now}: Neuspesne odoslanie suboru.{Environment.NewLine}");
+                });
+                return;
+            }
+            Output.Dispatcher.Invoke(() =>
+            {
+                Output.AppendTextAndScroll($"{DateTime.Now}: Uspesne odoslanie suboru.{Environment.NewLine}");
+            });
+        }
+
+        private void _pksServer_ReceivedFile(IPEndPoint endPoint, FilePacket file)
+        {
+            Output.Dispatcher.Invoke(() =>
+            {
+                Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}:{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Pocet fragmentov: {file.FragmentsCount}{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Dlzka fragmentu: {file.FragmentLength}{Environment.NewLine}");
+                Output.AppendTextAndScroll(file.Error
+                    ? $"Nepodarilo sa stiahnut subor.{Environment.NewLine}"
+                    : $"Subor: {file.FileInfo.FullName}{Environment.NewLine}");
+            });
         }
 
         private void _pksClient_ClientError()
@@ -91,36 +122,51 @@ namespace PksGui
 
         private void _pksClient_ClientConnected()
         {
-            Dispatcher.Invoke(() => {
+            Dispatcher.Invoke(() =>
+            {
                 Output.AppendTextAndScroll($"{DateTime.Now}: Vzniklo spojenie zo serverom{Environment.NewLine}");
                 InputPanel.IsEnabled = true;
-            }); 
+            });
         }
 
         private void PksServerReceivedMessage(IPEndPoint endPoint, Message message)
         {
-           Output.Dispatcher.Invoke(() => {
-               Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}:{Environment.NewLine}");
-               Output.AppendTextAndScroll($"Pocet fragmentov: {message.FragmentsCount}{Environment.NewLine}");
-               Output.AppendTextAndScroll($"Dlzka fragmentu: {message.FragmentLength}{Environment.NewLine}");
-               Output.AppendTextAndScroll(message.Error
-                   ? $"Nepodarilo sa nacitat celu spravu.{Environment.NewLine}"
-                   : $"Sprava: {message.Text}{Environment.NewLine}");
-           });
+            Output.Dispatcher.Invoke(() =>
+            {
+                Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}:{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Pocet fragmentov: {message.FragmentsCount}{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Dlzka fragmentu: {message.FragmentLength}{Environment.NewLine}");
+                Output.AppendTextAndScroll(message.Error
+                    ? $"Nepodarilo sa nacitat celu spravu.{Environment.NewLine}"
+                    : $"Sprava: {message.Text}{Environment.NewLine}");
+            });
         }
 
         private void PksServerClientDisconnected(IPEndPoint endPoint)
         {
-            Output.Dispatcher.Invoke(() => { Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Client disconnected{Environment.NewLine}"); });
+            Output.Dispatcher.Invoke(
+                () =>
+                {
+                    Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Client disconnected{Environment.NewLine}");
+                });
         }
 
         private void PksServerClientConnected(IPEndPoint endPoint)
         {
-            Output.Dispatcher.Invoke(() => { Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Client connected{Environment.NewLine}"); });
+            Output.Dispatcher.Invoke(
+                () =>
+                {
+                    Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Client connected{Environment.NewLine}");
+                });
         }
+
         private void PksServerClientTimedOud(IPEndPoint endPoint)
         {
-            Output.Dispatcher.Invoke(() => { Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Client Timedout{Environment.NewLine}"); });
+            Output.Dispatcher.Invoke(
+                () =>
+                {
+                    Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Client Timedout{Environment.NewLine}");
+                });
         }
 
         private void Disconnect_ButtonClick(object sender, RoutedEventArgs e)
@@ -153,7 +199,7 @@ namespace PksGui
 
         private void ServerStart_ButtonClick(object sender, RoutedEventArgs e)
         {
-            if(!_lastStateServer)
+            if (!_lastStateServer)
                 Output.Clear();
             _lastStateServer = true;
 
@@ -272,7 +318,15 @@ namespace PksGui
         private void Button_Click_2(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog();
-            dialog.InitialDirectory = Path.GetDirectoryName(FilePath.Text);
+            try
+            {
+                var x = Path.GetDirectoryName(FilePath.Text);
+                dialog.InitialDirectory = x;
+            }
+            catch
+            {
+                // ignored
+            }
             if (dialog.ShowDialog() == true)
                 FilePath.Text = dialog.FileName;
         }
