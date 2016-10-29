@@ -206,7 +206,7 @@ namespace PksUdp.Server
                     }
 
                     var id = bytes.GetFragmentId();
-                    if (_lastId != null && _lastId != id)
+                    if (_lastId != null && !_lastId.Equals(id))
                     {
                         continue;
                     }
@@ -229,6 +229,12 @@ namespace PksUdp.Server
                 }
                 catch (ThreadAbortException)
                 {
+                    lock (_clientLock)
+                    {
+                        Client = null;
+                    }
+                    _pingTimer.Stop();
+                    _recieveTimer.Stop();
                     return;
                 }
                 catch (SocketException ex)
@@ -251,15 +257,6 @@ namespace PksUdp.Server
                     {
                         throw;
                     }
-                }
-                finally
-                {
-                    lock (_clientLock)
-                    {
-                        Client = null;
-                    }
-                    _pingTimer.Stop();
-                    _recieveTimer.Stop();
                 }
             }
         }

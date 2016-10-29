@@ -34,7 +34,7 @@ namespace PksUdp
             return data;
         }
 
-        private const int FragmentTypeIndex = 1;
+        internal const int FragmentTypeIndex = 1;
         private const int FragmentIdIndex = 2;
         private const int FragmentOrderIndex = 7;
         private const int FragmentCountIndex = 11;
