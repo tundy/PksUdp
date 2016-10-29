@@ -45,12 +45,6 @@ namespace PksUdp
             Id = id;
         }
 
-        public PaketId(DateTimeOffset time, byte id)
-        {
-            UnixTime = (int)time.ToUnixTimeSeconds();
-            Id = id;
-        }
-
         private static DateTime _lastDate = DateTime.Now;
         private static byte _id;
 
@@ -67,7 +61,7 @@ namespace PksUdp
                 _id = 0;
             }
 
-            UnixTime = (int)((DateTimeOffset)_lastDate).ToUnixTimeSeconds();
+            UnixTime = (int)_lastDate.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
             Id = _id;
         }
     }
