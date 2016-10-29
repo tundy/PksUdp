@@ -159,11 +159,11 @@ namespace PksUdp
 
         public static void SetFragmentId(this byte[] data, PaketId id)
         {
-            data[FragmentOrderIndex] = (byte)((id.UnixTime >> 24) & 0xFF);
-            data[FragmentOrderIndex + 1] = (byte)((id.UnixTime >> 16) & 0xFF);
-            data[FragmentOrderIndex + 2] = (byte)((id.UnixTime >> 8) & 0xFF);
-            data[FragmentOrderIndex + 3] = (byte)(id.UnixTime & 0xFF);
-            data[FragmentOrderIndex + 3] = id.Id;
+            data[FragmentIdIndex] = (byte)((id.UnixTime >> 24) & 0xFF);
+            data[FragmentIdIndex + 1] = (byte)((id.UnixTime >> 16) & 0xFF);
+            data[FragmentIdIndex + 2] = (byte)((id.UnixTime >> 8) & 0xFF);
+            data[FragmentIdIndex + 3] = (byte)(id.UnixTime & 0xFF);
+            data[FragmentIdIndex + 4] = id.Id;
         }
         public static PaketId GetFragmentId(this byte[] data)
         {
