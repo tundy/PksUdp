@@ -1,8 +1,10 @@
 ﻿using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Windows;
 using System.Windows.Input;
+using Microsoft.Win32;
 using PksUdp;
 using PksUdp.Client;
 using PksUdp.Server;
@@ -265,6 +267,26 @@ namespace PksGui
             if (e.Key != Key.Enter || Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) return;
             Button_Click_1(sender, e);
             e.Handled = true;
+        }
+
+        private void Button_Click_2(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog();
+            dialog.InitialDirectory = Path.GetDirectoryName(FilePath.Text);
+            if (dialog.ShowDialog() == true)
+                FilePath.Text = dialog.FileName;
+        }
+
+        private void Button_Click_3(object sender, RoutedEventArgs e)
+        {
+            int size;
+            if (!int.TryParse(FragmentSize.Text, out size) || size > 65470)
+            {
+                Output.AppendTextAndScroll($"Nepodarilo sa nacitat velkost fragmentu.{Environment.NewLine}");
+                return;
+            }
+
+            _pksClient.SendFile(FilePath.Text, size, ChybnyFragment.IsChecked == true);
         }
     }
 

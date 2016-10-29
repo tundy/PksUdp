@@ -4,6 +4,13 @@ namespace PksUdp
 {
     internal static class Extensions
     {
+        internal static T[] SubArray<T>(this T[] data, int index, int length)
+        {
+            var result = new T[length];
+            Array.Copy(data, index, result, 0, length);
+            return result;
+        }
+
         internal static byte[] PingPaket()
         {
             var data = new byte[5];

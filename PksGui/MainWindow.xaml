@@ -73,8 +73,8 @@
                 <TextBox x:Name="Input" x:FieldModifier="private" AcceptsReturn="True" MaxHeight="150" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible" Margin="5" DockPanel.Dock="Left" VerticalAlignment="Stretch" VerticalContentAlignment="Top" SpellCheck.IsEnabled="True" PreviewKeyDown="Input_PreviewKeyDown"/>
             </DockPanel>
             <DockPanel>
-                <Button Content="Odoslat subor" Margin="5" DockPanel.Dock="Right" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
-                <Button Content="Vybrat subor" Margin="5" DockPanel.Dock="Right" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+                <Button Content="Odoslat subor" Margin="5" DockPanel.Dock="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Click="Button_Click_3"/>
+                <Button Content="Vybrat subor" Margin="5" DockPanel.Dock="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Click="Button_Click_2"/>
                 <TextBox x:Name="FilePath" x:FieldModifier="private" Margin="5" DockPanel.Dock="Left" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
             </DockPanel>
         </StackPanel>

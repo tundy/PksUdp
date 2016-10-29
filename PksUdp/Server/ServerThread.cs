@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -53,7 +55,7 @@ namespace PksUdp.Server
         /// <summary>
         /// Ulozisko dat pre fragmenty.
         /// </summary>
-        private readonly Dictionary<uint, string> _fragments = new Dictionary<uint, string>();
+        private readonly Dictionary<uint, byte[]> _fragments = new Dictionary<uint, byte[]>();
         /// <summary>
         /// Id spravy.
         /// </summary>
@@ -263,8 +265,31 @@ namespace PksUdp.Server
 
         private void SpracujSubor(byte[] bytes, PaketId id, IPEndPoint sender)
         {
-            _lastFragmentType = Extensions.Type.Nothing;
-            //ResetCounter();
+            if (!bytes.IsFragmented())
+            {
+                SpracujNefragmentovanySubor(bytes, id, sender);
+            }
+            else
+            {
+                SpracujFragmentovanySubor(bytes, id, sender);
+            }
+
+        }
+
+        private void SpracujFragmentovanySubor(byte[] bytes, PaketId id, IPEndPoint sender)
+        {
+        }
+
+        private void SpracujNefragmentovanySubor(byte[] bytes, PaketId id, IPEndPoint sender)
+        {
+            var nameSize = bytes[Extensions.FragmentDataIndex] << 24;
+            nameSize |= bytes[Extensions.FragmentDataIndex + 1] << 16;
+            nameSize |= bytes[Extensions.FragmentDataIndex + 2] << 8;
+            nameSize |= bytes[Extensions.FragmentDataIndex + 3];
+            var name = Encoding.UTF8.GetString(bytes, Extensions.FragmentDataIndex + 4, nameSize);
+            var file = File.Create(name);
+            file.Write(bytes, Extensions.FragmentDataIndex + 4 + nameSize, bytes.Length - (Extensions.FragmentDataIndex + 4 + nameSize));
+            ResetCounter();
         }
 
         /// <summary>
@@ -372,8 +397,7 @@ namespace PksUdp.Server
                     if (!_fragments.ContainsKey(order))
                     {
                         _fragmentCount = bytes.GetFragmentCount() + 1;
-                        _fragments.Add(order, Encoding.UTF8.GetString(bytes, Extensions.FragmentDataf0Index,
-                            bytes.Length - Extensions.FragmentDataf0Index - 3));
+                        _fragments.Add(order, bytes.SubArray(Extensions.FragmentDataf0Index, bytes.Length - Extensions.FragmentDataf0Index - 3));
                     }
                 }
                 else
@@ -396,8 +420,7 @@ namespace PksUdp.Server
                             }
                         }
 
-                        _fragments.Add(order, Encoding.UTF8.GetString(bytes, Extensions.FragmentDatafIndex,
-                            bytes.Length - Extensions.FragmentDatafIndex - 3));
+                        _fragments.Add(order, bytes.SubArray(Extensions.FragmentDatafIndex, bytes.Length - Extensions.FragmentDatafIndex - 3));
                     }
                 }
             }
@@ -417,14 +440,18 @@ namespace PksUdp.Server
             var data = PksServer.SuccessPaket(id, (uint)_fragmentCount);
             _pksServer.Socket.Send(data, data.Length, sender);
 
-            var sb = new StringBuilder();
-            for (long i = 0; i < _fragments.LongCount(); i++)
+            var utf8 = new byte[0];
+
+            foreach (var fragment in _fragments)
             {
-                sb.Append(_fragments[(uint) i]);
+                var oldSize = utf8.Length;
+                Array.Resize(ref utf8, utf8.Length + fragment.Value.Length);
+                Array.Copy(fragment.Value, 0, utf8, oldSize, fragment.Value.Length);
             }
+
             _pksServer.OnReceivedMessage(sender, new Message
             {
-                Text = sb.ToString(),
+                Text = Encoding.UTF8.GetString(utf8),
                 Error = false,
                 FragmentsCount = (uint) _fragmentCount,
                 FragmentLength = _fragmentLength,
