@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Cryptography;
 using System.Threading;
 using System.Timers;
 
-namespace PksUdp
+namespace PksUdp.Client
 {
-    internal class ClientThread
+    internal class ClientListener
     {
         /// <summary>
         /// Udp Socket.
         /// </summary>
-        private readonly PksClient _pksClient;
+        private readonly Client.PksClient _pksClient;
 
         private bool _connected = false;
 
@@ -23,12 +22,11 @@ namespace PksUdp
 
         private readonly System.Timers.Timer _pingTimer = new System.Timers.Timer {Interval = 30000, AutoReset = true};
 
-        public ClientThread(PksClient pksClient)
+        public ClientListener(Client.PksClient pksClient)
         {
             _pksClient = pksClient;
             _recieveTimer.Elapsed += _recieveTimer_Elapsed;
             _pingTimer.Elapsed += _pingTimer_Elapsed;
-            ;
         }
 
         private void _pingTimer_Elapsed(object sender, ElapsedEventArgs e)
@@ -39,7 +37,7 @@ namespace PksUdp
         private void Ping()
         {
             var data = Extensions.PingPaket();
-            _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
+            _pksClient.Socket?.Client?.Send(data, data.Length, SocketFlags.None);
         }
 
         private void _recieveTimer_Elapsed(object sender, ElapsedEventArgs e)
@@ -50,7 +48,7 @@ namespace PksUdp
         }
 
 
-        internal void Loop()
+        internal void RecieveLoop()
         {
             byte[] data;
             try
@@ -90,6 +88,8 @@ namespace PksUdp
             }
             finally
             {
+                _pingTimer.Stop();
+                _recieveTimer.Stop();
                 if (_pksClient?.Socket != null)
                 {
                     if (_pksClient.Socket.Client != null && _pksClient.Socket.Client.Connected)

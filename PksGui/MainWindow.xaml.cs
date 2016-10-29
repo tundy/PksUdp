@@ -15,6 +15,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using PksUdp;
+using PksClient = PksUdp.Client.PksClient;
+using PksServer = PksUdp.Server.PksServer;
 
 namespace PksGui
 {

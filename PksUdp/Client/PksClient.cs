@@ -1,17 +1,57 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
-namespace PksUdp
+namespace PksUdp.Client
 {
     public partial class PksClient
     {
+        internal abstract class NaOdoslanie
+        {
+        }
+
+        internal class SpravaNaOdoslanie : NaOdoslanie
+        {
+            internal readonly string Sprava;
+
+            public SpravaNaOdoslanie(string sprava)
+            {
+                Sprava = sprava;
+            }
+        }
+
+        internal class SuborNaOdoslanie : NaOdoslanie
+        {
+            internal readonly string Path;
+
+            public SuborNaOdoslanie(string path)
+            {
+                Path = path;
+            }
+        }
+
         internal PaketFragments lastMessage = null;
+
+        internal readonly Queue<NaOdoslanie> Poradovnik = new Queue<NaOdoslanie>();
+        internal readonly object PoradovnikLock = new object();
+
+        public void SendMessage(string text)
+        {
+            lock (PoradovnikLock)
+            {
+                Poradovnik.Enqueue(new SpravaNaOdoslanie(text));
+            }
+        }
+
+        public void SendFile(string path)
+        {
+            lock (PoradovnikLock)
+            {
+                Poradovnik.Enqueue(new SuborNaOdoslanie(path));
+            }
+        }
 
         /// <summary>
         /// Local (Listener) UDP Socket.
@@ -20,14 +60,16 @@ namespace PksUdp
         /// <summary>
         /// Thread for handling packets.
         /// </summary>
-        private Thread _thread;
+        private Thread _listener;
+
+        private Thread _sender;
 
         private int? _lastPort;
         /// <summary>
         /// Local (Listener) Port.
         /// </summary>
         /// <exception cref="ThreadStartException"/>
-        /// <exception cref="SocketException"/>
+        /// <exception cref="System.Net.Sockets.SocketException"/>
         public int? Port
         {
             get { return ((IPEndPoint)Socket?.Client?.LocalEndPoint)?.Port; }
@@ -51,7 +93,7 @@ namespace PksUdp
         /// <summary>
         /// Create communicator than Open UDP socket and start recieving thread.
         /// </summary>
-        /// <exception cref="SocketException"/>
+        /// <exception cref="System.Net.Sockets.SocketException"/>
         /// <exception cref="ThreadStartException"/>
         /// <exception cref="OutOfMemoryException"/>
         /// <param name="port">Port that will be used for communication.</param>
@@ -77,13 +119,13 @@ namespace PksUdp
             Close();
             Init();
 
-            _thread = new Thread(new ClientThread(this).Loop)
+            _listener = new Thread(new ClientListener(this).RecieveLoop)
             {
                 IsBackground = true,
-                Name = $"UdpClient {Port} - {endPoint}",
+                Name = $"UdpClient Listener {Port} - {endPoint}",
                 Priority = ThreadPriority.AboveNormal
             };
-            _thread.Start();
+            _listener.Start();
         }
 
         public void Connect(IPEndPoint endPoint)
@@ -122,11 +164,13 @@ namespace PksUdp
         /// Abort recieving thread and close socket.
         /// </summary>
         /// <exception cref="ThreadStartException"/>
-        /// <exception cref="SocketException"/>
+        /// <exception cref="System.Net.Sockets.SocketException"/>
         public void Close()
         {
-            if(_thread != null && _thread.IsAlive)
-                _thread.Abort();
+            if(_listener != null && _listener.IsAlive)
+                _listener.Abort();
+            if (_sender != null && _sender.IsAlive)
+                _sender.Abort();
             Socket?.Close();
         }
     }
