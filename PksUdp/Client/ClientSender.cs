@@ -94,6 +94,7 @@ namespace PksUdp.Client
                 fragment[0] = 0x7E;
                 fragment[fragment.Length-1] = 0x7E;
 
+                fragment.SetPaketType(Extensions.Type.Message);
                 Encoding.UTF8.GetBytes(sprava.Sprava, 0, sprava.Sprava.Length, fragment, Extensions.FragmentDataIndex);
                 fragment.CreateChecksum();
                 pksClientLastMessage.fragments.Add(fragment);
@@ -105,6 +106,7 @@ namespace PksUdp.Client
                 var fragment = new byte[sprava.FragmentSize];
                 fragment[0] = 0x7E;
                 fragment[fragment.Length - 1] = 0x7E;
+                fragment.SetPaketType(Extensions.Type.Message);
                 fragment.SetFragmentOrder(order++);
                 Encoding.UTF8.GetBytes(sprava.Sprava, 0, fragment.Length - 18, fragment, Extensions.FragmentDataf0Index);
                 sprava.Sprava = sprava.Sprava.Substring(fragment.Length - 18);
@@ -119,6 +121,7 @@ namespace PksUdp.Client
                     fragment = new byte[sprava.FragmentSize];
                     fragment[0] = 0x7E;
                     fragment[fragment.Length - 1] = 0x7E;
+                    fragment.SetPaketType(Extensions.Type.Message);
                     fragment.SetFragmentOrder(order++);
                     Encoding.UTF8.GetBytes(sprava.Sprava, offset, fragment.Length - 14, fragment, Extensions.FragmentDatafIndex);
                     offset += sprava.FragmentSize - 14;
@@ -129,6 +132,7 @@ namespace PksUdp.Client
                 fragment = new byte[sprava.FragmentSize - (sprava.Sprava.Length - offset)];
                 fragment[0] = 0x7E;
                 fragment[fragment.Length - 1] = 0x7E;
+                fragment.SetPaketType(Extensions.Type.Message);
                 fragment.SetFragmentOrder(order);
                 Encoding.UTF8.GetBytes(sprava.Sprava, offset, fragment.Length - 14, fragment, Extensions.FragmentDatafIndex);
                 fragment.CalculateChecksum();
