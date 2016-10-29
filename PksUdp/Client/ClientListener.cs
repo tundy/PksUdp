@@ -14,7 +14,6 @@ namespace PksUdp.Client
         /// </summary>
         private readonly PksClient _pksClient;
 
-        private bool _connected;
 
         /// <summary>
         /// Timer pre znovu vyziadanie fragmentov.
@@ -43,9 +42,12 @@ namespace PksUdp.Client
 
         private void _recieveTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            if (_pksClient.lastMessage == null) return;
-            _pksClient.OnReceivedMessage(_pksClient.lastMessage.PaketId, false);
-            _pksClient.lastMessage = null;
+            lock (_pksClient.LastMessageLock)
+            {
+                if (_pksClient.lastMessage == null) return;
+                _pksClient.OnReceivedMessage(_pksClient.lastMessage.PaketId, false);
+                _pksClient.lastMessage = null;
+            }
         }
 
 
@@ -54,11 +56,11 @@ namespace PksUdp.Client
             byte[] data;
             try
             {
-                _pksClient.Socket.Connect(_pksClient.endPoint);
+                _pksClient.Socket.Connect(_pksClient.EndPoint);
                 data = Extensions.ConnectedPaket();
                 _pksClient.Socket.Client.Send(data, data.Length, SocketFlags.None);
                 _pingTimer.Start();
-                var rcv = _pksClient.endPoint;
+                var rcv = _pksClient.EndPoint;
 
                 // Here will be saved information about UDP sender.
                 for (;;)
@@ -67,11 +69,14 @@ namespace PksUdp.Client
 
                     var bytes = _pksClient.Socket.Receive(ref rcv);
 
-                    if (_connected)
+                    lock (_pksClient.ConnectedLocker)
                     {
-                        if (!rcv.Equals(_pksClient.endPoint))
+                        if (_pksClient.Connected)
                         {
-                            continue;
+                            if (!rcv.Equals(_pksClient.EndPoint))
+                            {
+                                continue;
+                            }
                         }
                     }
 
@@ -145,15 +150,21 @@ namespace PksUdp.Client
 
             if (type == Extensions.Type.Ping) return;
 
-            if (_pksClient.lastMessage == null)
-            {
-                return;
+            lock (_pksClient.LastMessageLock)
+            { 
+                if (_pksClient.lastMessage == null)
+                {
+                    return;
+                }
             }
 
             var id = bytes.GetFragmentId();
-            if (!id.Equals(_pksClient.lastMessage.PaketId))
+            lock (_pksClient.LastMessageLock)
             {
-                return;
+                if (!id.Equals(_pksClient.lastMessage.PaketId))
+                {
+                    return;
+                }
             }
 
             switch (type)
@@ -162,12 +173,18 @@ namespace PksUdp.Client
                     ResendFragments(bytes);
                     return;
                 case Extensions.Type.SuccessFull:
-                    _pksClient.OnReceivedMessage(_pksClient.lastMessage.PaketId, true);
-                    _pksClient.lastMessage = null;
+                    lock (_pksClient.LastMessageLock)
+                    {
+                        _pksClient.OnReceivedMessage(_pksClient.lastMessage.PaketId, true);
+                        _pksClient.lastMessage = null;
+                    }
                     return;
                 case Extensions.Type.Fail:
-                    _pksClient.OnReceivedMessage(_pksClient.lastMessage.PaketId, false);
-                    _pksClient.lastMessage = null;
+                    lock (_pksClient.LastMessageLock)
+                    {
+                        _pksClient.OnReceivedMessage(_pksClient.lastMessage.PaketId, false);
+                        _pksClient.lastMessage = null;
+                    }
                     return;
                 default:
                     return;
@@ -185,16 +202,19 @@ namespace PksUdp.Client
                 return;
 
             var order = bytes.GetFragmentOrder();
-            var file = _pksClient.lastMessage as FileFragments;
-            if (file != null)
+            lock (_pksClient.LastMessageLock)
             {
-                ResendFileFragments(file, order);
-                return;
-            }
-            var message = _pksClient.lastMessage as MessageFragments;
-            if (message != null)
-            {
-                ResendMessageFragments(message, (int)order);
+                var file = _pksClient.lastMessage as FileFragments;
+                if (file != null)
+                {
+                    ResendFileFragments(file, order);
+                    return;
+                }
+                var message = _pksClient.lastMessage as MessageFragments;
+                if (message != null)
+                {
+                    ResendMessageFragments(message, (int) order);
+                }
             }
         }
 
@@ -227,7 +247,8 @@ namespace PksUdp.Client
 
         private bool NoConnection(Extensions.Type type)
         {
-            if (_connected) return false;
+            lock (_pksClient.ConnectedLocker)
+            if (_pksClient.Connected) return false;
 
             if (type != Extensions.Type.Connect)
             {
@@ -240,7 +261,8 @@ namespace PksUdp.Client
             }
 
             _pksClient.OnClientConnected();
-            _connected = true;
+            lock (_pksClient.ConnectedLocker)
+            _pksClient.Connected = true;
             return false;
         }
     }

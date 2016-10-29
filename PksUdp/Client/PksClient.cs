@@ -8,6 +8,10 @@ namespace PksUdp.Client
 {
     public partial class PksClient
     {
+        internal bool Connected;
+        internal readonly object ConnectedLocker = new object();
+
+
         internal abstract class NaOdoslanie
         {
             internal readonly int FragmentSize;
@@ -87,7 +91,8 @@ namespace PksUdp.Client
             }
         }
 
-        internal IPEndPoint endPoint;
+        internal IPEndPoint EndPoint;
+        internal readonly object LastMessageLock = new object();
 
         /// <summary>
         /// Create communicator.
@@ -110,13 +115,13 @@ namespace PksUdp.Client
 
         public void Connect(string ip, int port)
         {
-            endPoint = new IPEndPoint(IPAddress.Parse(ip), port);
+            EndPoint = new IPEndPoint(IPAddress.Parse(ip), port);
             Connect();
         }
 
         public void Connect(IPAddress ip, int port)
         {
-            endPoint = new IPEndPoint(ip, port);
+            EndPoint = new IPEndPoint(ip, port);
             Connect();
         }
 
@@ -128,13 +133,13 @@ namespace PksUdp.Client
             _listener = new Thread(new ClientListener(this).RecieveLoop)
             {
                 IsBackground = true,
-                Name = $"UdpClient Listener {Port} - {endPoint}",
+                Name = $"UdpClient Listener {Port} - {EndPoint}",
                 Priority = ThreadPriority.AboveNormal
             };
             _sender = new Thread(new ClientSender(this).SenderLoop)
             {
                 IsBackground = true,
-                Name = $"UdpClient Sender {Port} - {endPoint}",
+                Name = $"UdpClient Sender {Port} - {EndPoint}",
                 Priority = ThreadPriority.AboveNormal
             };
             _listener.Start();
@@ -143,7 +148,7 @@ namespace PksUdp.Client
 
         public void Connect(IPEndPoint endPoint)
         {
-            this.endPoint = endPoint;
+            this.EndPoint = endPoint;
             Connect();
         }
 
@@ -185,6 +190,8 @@ namespace PksUdp.Client
             if (_sender != null && _sender.IsAlive)
                 _sender.Abort();
             Socket?.Close();
+            lock (ConnectedLocker)
+                Connected = false;
         }
     }
 }
