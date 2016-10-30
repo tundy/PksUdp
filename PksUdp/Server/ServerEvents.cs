@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 
 namespace PksUdp.Server
 {
@@ -7,8 +8,14 @@ namespace PksUdp.Server
         public delegate void ReceivedMessageHandler(IPEndPoint endPoint, Message message);
         public delegate void ReceivedFileHandler(IPEndPoint endPoint, FilePacket file);
         public delegate void ClientHandler(IPEndPoint endPoint);
-
+        public delegate void Error(Exception e);
         public delegate void BufferHandler(IPEndPoint endpoint, PaketId id, uint loaded, uint? total);
+
+        public event Error ServerDown;
+        internal virtual void OnServerDown(Exception e)
+        {
+            ServerDown?.Invoke(e);
+        }
 
         public event BufferHandler Buffering;
         internal virtual void OnBuffering(IPEndPoint endPoint, PaketId id, uint loaded, uint? total)

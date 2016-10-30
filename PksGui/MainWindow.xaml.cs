@@ -37,6 +37,7 @@ namespace PksGui
             _pksServer.ReceivedMessage += PksServerReceivedMessage;
             _pksServer.ReceivedFile += _pksServer_ReceivedFile;
             _pksServer.Buffering += _pksServer_Buffering;
+            _pksServer.ServerDown += _pksServer_ServerDown;
             _pksClient = new PksClient();
             _pksClient.ClientConnected += _pksClient_ClientConnected;
             _pksClient.ReceivedMessage += _pksClient_ReceivedMessage;
@@ -46,13 +47,21 @@ namespace PksGui
             _pksClient.ClientError += _pksClient_ClientError;
         }
 
+        private void _pksServer_ServerDown(Exception e)
+        {
+            if (!_lastStateServer) return;
+            Output.AppendTextAndScroll($"Spadol server.{Environment.NewLine}{e}{Environment.NewLine}");
+            _pksServer.Close();
+            ResetControls();
+        }
+
         private void _pksServer_Buffering(IPEndPoint endpoint, PaketId id, uint loaded, uint? total)
         {
             Output.Dispatcher.Invoke(() =>
             {
                 Output.AppendTextAndScroll(total == null
-                    ? $"{DateTime.Now}: Nepodarilo sa nacitat ani jeden fragment{Environment.NewLine}"
-                    : $"{DateTime.Now}: Mam zatial nacitanych {loaded} z {total.Value} fragmentov ({(loaded*100)/(total.Value)})%{Environment.NewLine}");
+                    ? $"{DateTime.Now}: Nepodarilo sa identifikovať správu{Environment.NewLine}"
+                    : $"{DateTime.Now}: Mám zatiaľ načítaných {loaded} z {total.Value} fragmentov ({(loaded*100)/(total.Value)})%{Environment.NewLine}");
             });
         }
 
@@ -62,13 +71,13 @@ namespace PksGui
             {
                 Output.Dispatcher.Invoke(() =>
                 {
-                    Output.AppendTextAndScroll($"{DateTime.Now}: Neuspesne odoslanie suboru.{Environment.NewLine}");
+                    Output.AppendTextAndScroll($"{DateTime.Now}: Neúspešné odoslanie súboru.{Environment.NewLine}");
                 });
                 return;
             }
             Output.Dispatcher.Invoke(() =>
             {
-                Output.AppendTextAndScroll($"{DateTime.Now}: Uspesne odoslanie suboru.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"{DateTime.Now}: Úspešné odoslanie súboru.{Environment.NewLine}");
             });
         }
 
@@ -77,11 +86,11 @@ namespace PksGui
             Output.Dispatcher.Invoke(() =>
             {
                 Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}:{Environment.NewLine}");
-                Output.AppendTextAndScroll($"Pocet fragmentov: {file.FragmentsCount}{Environment.NewLine}");
-                Output.AppendTextAndScroll($"Dlzka fragmentu: {file.FragmentLength}{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Počet fragmentov: {file.FragmentsCount}{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Dížka fragmentu: {file.FragmentLength}{Environment.NewLine}");
                 Output.AppendTextAndScroll(file.Error
-                    ? $"Nepodarilo sa stiahnut subor.{Environment.NewLine}"
-                    : $"Subor: {file.FileInfo.FullName}{Environment.NewLine}");
+                    ? $"Nepodarilo sa stiahnuť súbor.{Environment.NewLine}"
+                    : $"Súbor: {file.FileInfo.FullName}{Environment.NewLine}");
             });
         }
 
@@ -89,7 +98,7 @@ namespace PksGui
         {
             Dispatcher.Invoke(() =>
             {
-                Output.AppendTextAndScroll($"{DateTime.Now}: Prerusilo sa spojenie zo serverom{Environment.NewLine}");
+                Output.AppendTextAndScroll($"{DateTime.Now}: Prerušilo sa spojenie zo serverom{Environment.NewLine}");
                 if (!_lastStateServer)
                     ResetControls();
             });
@@ -121,13 +130,13 @@ namespace PksGui
             {
                 Output.Dispatcher.Invoke(() =>
                 {
-                    Output.AppendTextAndScroll($"{DateTime.Now}: Neuspesne odoslanie spravy.{Environment.NewLine}");
+                    Output.AppendTextAndScroll($"{DateTime.Now}: Neúspešné odoslanie správy.{Environment.NewLine}");
                 });
                 return;
             }
             Output.Dispatcher.Invoke(() =>
             {
-                Output.AppendTextAndScroll($"{DateTime.Now}: Uspesne odoslanie spravy.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"{DateTime.Now}: Úspešné odoslanie správy.{Environment.NewLine}");
             });
         }
 
@@ -145,11 +154,11 @@ namespace PksGui
             Output.Dispatcher.Invoke(() =>
             {
                 Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}:{Environment.NewLine}");
-                Output.AppendTextAndScroll($"Pocet fragmentov: {message.FragmentsCount}{Environment.NewLine}");
-                Output.AppendTextAndScroll($"Dlzka fragmentu: {message.FragmentLength}{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Počet fragmentov: {message.FragmentsCount}{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Dĺžka fragmentu: {message.FragmentLength}{Environment.NewLine}");
                 Output.AppendTextAndScroll(message.Error
-                    ? $"Nepodarilo sa nacitat celu spravu.{Environment.NewLine}"
-                    : $"Sprava: {message.Text}{Environment.NewLine}");
+                    ? $"Nepodarilo sa načítať celú správu.{Environment.NewLine}"
+                    : $"Správa: {message.Text}{Environment.NewLine}");
             });
         }
 
@@ -158,7 +167,7 @@ namespace PksGui
             Output.Dispatcher.Invoke(
                 () =>
                 {
-                    Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Client disconnected{Environment.NewLine}");
+                    Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Klient sa odpojil{Environment.NewLine}");
                 });
         }
 
@@ -167,7 +176,7 @@ namespace PksGui
             Output.Dispatcher.Invoke(
                 () =>
                 {
-                    Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Client connected{Environment.NewLine}");
+                    Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Klient sa pripojil{Environment.NewLine}");
                 });
         }
 
@@ -176,7 +185,7 @@ namespace PksGui
             Output.Dispatcher.Invoke(
                 () =>
                 {
-                    Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Client Timedout{Environment.NewLine}");
+                    Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Prerušilo sa spojenie zo serverom{Environment.NewLine}");
                 });
         }
 
@@ -186,7 +195,7 @@ namespace PksGui
 
             if (_lastStateServer)
             {
-                Output.AppendTextAndScroll($"Server sa ukoncil.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Server sa ukončil.{Environment.NewLine}");
                 _pksServer.Close();
             }
             else
@@ -198,7 +207,7 @@ namespace PksGui
 
         private void ResetControls()
         {
-            Title = "Komunikator";
+            Title = "Komunikátor";
             StartServerButton.IsEnabled = true;
             ConnectButton.IsEnabled = true;
             StopButton.IsEnabled = false;
@@ -217,7 +226,7 @@ namespace PksGui
             ushort port;
             if (!ushort.TryParse(ThisPort.Text, out port))
             {
-                Output.AppendTextAndScroll($"Nepodarilo sa nacitat port.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Nepodarilo sa načítať port.{Environment.NewLine}");
                 return;
             }
 
@@ -230,7 +239,7 @@ namespace PksGui
                 Output.AppendTextAndScroll($"{ex.Message}{Environment.NewLine}");
                 return;
             }
-            Output.AppendTextAndScroll($"Uspesne spustenie server na porte {port}.{Environment.NewLine}");
+            Output.AppendTextAndScroll($"Úspešné spustenie servera na porte {port}.{Environment.NewLine}");
             Title = $"Server - {port}";
             StartServerButton.IsEnabled = false;
             ConnectButton.IsEnabled = false;
@@ -273,18 +282,18 @@ namespace PksGui
             IPAddress ip;
             if (!IPAddress.TryParse(ServerIp.Text, out ip))
             {
-                Output.AppendTextAndScroll($"Nepodarilo sa nacitat IP adresu.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Nepodarilo sa načítať IP adresu.{Environment.NewLine}");
                 return;
             }
 
             ushort portServer;
             if (!ushort.TryParse(ServerPort.Text, out portServer))
             {
-                Output.AppendTextAndScroll($"Nepodarilo sa nacitat port servera.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Nepodarilo sa načítať port servera.{Environment.NewLine}");
                 return;
             }
 
-            Output.AppendTextAndScroll($"Pokusam sa pripojit na {ip}:{portServer}.{Environment.NewLine}");
+            Output.AppendTextAndScroll($"Pokúšam sa pripojiť na {ip}:{portServer}.{Environment.NewLine}");
             Title = $"Klient - {ip}:{portServer}";
             StartServerButton.IsEnabled = false;
             ConnectButton.IsEnabled = false;
@@ -306,19 +315,19 @@ namespace PksGui
             int size;
             if (!int.TryParse(FragmentSize.Text, out size))
             {
-                Output.AppendTextAndScroll($"Nepodarilo sa nacitat velkost fragmentu.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Nepodarilo sa načítat veľkosť fragmentu.{Environment.NewLine}");
                 return;
             }
 
             if (size > 65470)
             {
-                Output.AppendTextAndScroll($"Velkost fragmentu nemoze byt vacsia ako 65470.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Veľkosť fragmentu nemôže byť vačšia ako 65470.{Environment.NewLine}");
                 return;
             }
 
             if (size < 20)
             {
-                Output.AppendTextAndScroll($"Velkost fragmentu nemoze byt mensia ako 20.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Veľkosť fragmentu nemôže byť menšia ako 20.{Environment.NewLine}");
                 return;
             }
 
@@ -372,19 +381,19 @@ namespace PksGui
             int size;
             if (!int.TryParse(FragmentSize.Text, out size))
             {
-                Output.AppendTextAndScroll($"Nepodarilo sa nacitat velkost fragmentu.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Nepodarilo sa načítať veľkostť fragmentu.{Environment.NewLine}");
                 return;
             }
 
             if (size > 65470)
             {
-                Output.AppendTextAndScroll($"Velkost fragmentu nemoze byt vacsia ako 65470.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Veľkosť fragmentu nemôže byť väčšia ako 65470.{Environment.NewLine}");
                 return;
             }
 
             if (size < 20)
             {
-                Output.AppendTextAndScroll($"Velkost fragmentu nemoze byt mensia ako 20.{Environment.NewLine}");
+                Output.AppendTextAndScroll($"Veľkosť fragmentu nemôžze byť menšia ako 20.{Environment.NewLine}");
                 return;
             }
 

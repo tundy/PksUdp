@@ -22,14 +22,14 @@
             <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
                 <WrapPanel VerticalAlignment="Center">
                     <Button Margin="5" x:Name="StartServerButton" x:FieldModifier="private" Content="Spusti server" VerticalContentAlignment="Center" Click="ServerStart_ButtonClick"/>
-                    <Button Margin="5" x:Name="ConnectButton" x:FieldModifier="private" Content="Pripojit" VerticalContentAlignment="Center" Click="Connect_ButtonClick">
+                    <Button Margin="5" x:Name="ConnectButton" x:FieldModifier="private" Content="Pripojiť" VerticalContentAlignment="Center" Click="Connect_ButtonClick">
                         <!--Button.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Pripojit chybne"/>
                             </ContextMenu>
                         </-->
                     </Button>
-                    <Button Margin="5" IsEnabled="False" x:Name="StopButton" x:FieldModifier="private" Content="Odpojit" VerticalContentAlignment="Center" Click="Disconnect_ButtonClick"/>
+                    <Button Margin="5" IsEnabled="False" x:Name="StopButton" x:FieldModifier="private" Content="Odpojiť" VerticalContentAlignment="Center" Click="Disconnect_ButtonClick"/>
                 </WrapPanel>
             </Border>
             <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
@@ -42,12 +42,12 @@
             </Border>
             <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
                 <WrapPanel>
-                    <TextBlock Margin="5" Text="Maximalna velkost fragmentu:"/>
+                    <TextBlock Margin="5" Text="Maximálna veľkost fragmentu:"/>
                     <TextBox IsEnabled="False" x:Name="FragmentSize" x:FieldModifier="private" local:Masking.Mask="^[0-9]*$" Margin="5" HorizontalContentAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" MaxLength="5" Text="1000" MinWidth="38"/>
                 </WrapPanel>
             </Border>
             <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
-                <Button Margin="5" Content="Zmaz vystup" Click="Button_Click"/>
+                <Button Margin="5" Content="Zmaž výstup" Click="Button_Click"/>
             </Border>
         </WrapPanel>
         <Border Grid.Row="1" BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
@@ -68,18 +68,18 @@
                         <RowDefinition Height="auto"/>
                     </Grid.RowDefinitions>
                     <StackPanel Grid.Row="1" Orientation="Vertical" VerticalAlignment="Center" >
-                        <TextBlock Text="Chybne fragmenty:"/>
-                        <RadioButton x:Name="Ziadne" x:FieldModifier="private" GroupName="frag" Content="Ziadne chybne" IsChecked="True" VerticalContentAlignment="Center"/>
-                        <RadioButton x:Name="Prvy" x:FieldModifier="private" GroupName="frag" Content="Prvy chybny" VerticalContentAlignment="Center"/>
-                        <RadioButton x:Name="Vsetky" x:FieldModifier="private" GroupName="frag" Content="Vsetky chybne" VerticalContentAlignment="Center"/>
+                        <TextBlock Text="Chybné fragmenty:"/>
+                        <RadioButton GroupName="frag" Content="Žiadne chybné" IsChecked="True" VerticalContentAlignment="Center"/>
+                        <RadioButton x:Name="Prvy" x:FieldModifier="private" GroupName="frag" Content="Prvý chybný" VerticalContentAlignment="Center"/>
+                        <RadioButton x:Name="Vsetky" x:FieldModifier="private" GroupName="frag" Content="Všetky chybné" VerticalContentAlignment="Center"/>
                     </StackPanel>
-                    <Button Grid.Row="2" Content="Odoslat spravu" Margin="5" VerticalAlignment="Center" VerticalContentAlignment="Center" Click="Button_Click_1"/>
+                    <Button Grid.Row="2" Content="Odoslať správu" Margin="5" VerticalAlignment="Center" VerticalContentAlignment="Center" Click="Button_Click_1"/>
                 </Grid>
                 <TextBox x:Name="Input" x:FieldModifier="private" AcceptsReturn="True" MaxHeight="150" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible" Margin="5" DockPanel.Dock="Left" VerticalAlignment="Stretch" VerticalContentAlignment="Top" SpellCheck.IsEnabled="True" PreviewKeyDown="Input_PreviewKeyDown"/>
             </DockPanel>
             <DockPanel>
-                <Button Content="Odoslat subor" Margin="5" DockPanel.Dock="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Click="Button_Click_3"/>
-                <Button Content="Vybrat subor" Margin="5" DockPanel.Dock="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Click="Button_Click_2"/>
+                <Button Content="Odoslať súbor" Margin="5" DockPanel.Dock="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Click="Button_Click_3"/>
+                <Button Content="Vybrať súbor" Margin="5" DockPanel.Dock="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Click="Button_Click_2"/>
                 <TextBox x:Name="FilePath" x:FieldModifier="private" Margin="5" DockPanel.Dock="Left" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
             </DockPanel>
         </StackPanel>

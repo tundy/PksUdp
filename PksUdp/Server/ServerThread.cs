@@ -280,8 +280,18 @@ namespace PksUdp.Server
                     }
                     else
                     {
-                        throw;
+                        _pingTimer.Stop();
+                        _recieveTimer.Stop();
+                        _pksServer.OnServerDown(ex);
+                        return;
                     }
+                }
+                catch (Exception e)
+                {
+                    _pingTimer.Stop();
+                    _recieveTimer.Stop();
+                    _pksServer.OnServerDown(e);
+                    return;
                 }
             }
         }
