@@ -1,2 +1,0 @@
-# PksUdp
-Zadanie pre PKS
