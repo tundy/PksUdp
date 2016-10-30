@@ -54,6 +54,7 @@ namespace PksGui
             Output.AppendTextAndScroll($"Spadol server.{Environment.NewLine}{e.Message}{Environment.NewLine}");
             _pksServer.Close();
             ResetControls();
+            GC.Collect();
         }
 
         private void _pksServer_Buffering(IPEndPoint endpoint, PaketId id, uint loaded, uint? total)
@@ -102,6 +103,7 @@ namespace PksGui
                 Output.AppendTextAndScroll($"{DateTime.Now}: Prerušilo sa spojenie zo serverom{Environment.NewLine}");
                 ResetControls();
             });
+            GC.Collect();
         }
 
         private void _pksClient_NoServerResponse()
@@ -121,6 +123,7 @@ namespace PksGui
                 Output.AppendTextAndScroll($"{DateTime.Now}: {e.Message}{Environment.NewLine}");
                 ResetControls();
             });
+            GC.Collect();
         }
 
         private void _pksClient_ReceivedMessage(PaketId id, bool success)

@@ -352,6 +352,7 @@ namespace PksUdp.Server
 
             var off = 0;
             for (uint i = 0; i < (uint) _fragmentCount; i++)
+            { 
                 if ((off < 4) || (off - 4 < fileNameLength))
                 {
                     for (var j = 0; j < _fragments[i].Length; j++)
@@ -384,8 +385,9 @@ namespace PksUdp.Server
                         file = File.Create(fileName);
                     }
                     file.Write(_fragments[i], 0, _fragments[i].Length);
-                    //off += _fragments[i].Length;
                 }
+                _fragments.Remove(i);
+            }
             file?.Close();
 
             _pksServer.OnReceivedFile(sender, new FilePacket
@@ -570,6 +572,7 @@ namespace PksUdp.Server
                 var oldSize = utf8.Length;
                 Array.Resize(ref utf8, utf8.Length + _fragments[i].Length);
                 Array.Copy(_fragments[i], 0, utf8, oldSize, _fragments[i].Length);
+                _fragments.Remove(i);
             }
 
             _pksServer.OnReceivedMessage(sender, new Message

@@ -126,6 +126,7 @@ namespace PksUdp.Client
                 _pingTimer.Stop();
                 _recieveTimer.Stop();
                 _connected = false;
+                _lastMessage?.Fragments.Clear();
             }
         }
 
