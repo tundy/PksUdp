@@ -14,83 +14,49 @@ namespace PksUdp.Client
             PrvyChybny,
             VsetkyChybne
         }
-        internal abstract class NaOdoslanie
-        {
-            internal readonly int FragmentSize;
-            internal readonly Fragmenty Error;
-
-            protected NaOdoslanie(int fragmentSize, Fragmenty error)
-            {
-                FragmentSize = fragmentSize;
-                Error = error;
-            }
-        }
-
-        internal class SpravaNaOdoslanie : NaOdoslanie
-        {
-            internal string Sprava;
-
-            public SpravaNaOdoslanie(string sprava, int fragmentSize, Fragmenty error) : base(fragmentSize, error)
-            {
-                Sprava = sprava;
-            }
-        }
-
-        internal class SuborNaOdoslanie : NaOdoslanie
-        {
-            internal readonly string Path;
-
-            public SuborNaOdoslanie(string path, int fragmentSize, Fragmenty error) : base(fragmentSize, error)
-            {
-                Path = path;
-            }
-        }
 
 
         internal readonly Queue<NaOdoslanie> Poradovnik = new Queue<NaOdoslanie>();
         internal readonly object PoradovnikLock = new object();
 
-        public void SendMessage(string text, int fragmentSize, Fragmenty error)
-        {
-            if (fragmentSize < 20 || fragmentSize > 65470)
-            {
-                return;
-            }
-            lock (PoradovnikLock)
-            {
-                Poradovnik.Enqueue(new SpravaNaOdoslanie(text, fragmentSize, error));
-            }
-        }
-
-        public void SendFile(string path, int fragmentSize, Fragmenty error)
-        {
-            if (fragmentSize < 20 || fragmentSize > 65470)
-            {
-                return;
-            }
-            lock (PoradovnikLock)
-            {
-                Poradovnik.Enqueue(new SuborNaOdoslanie(path, fragmentSize, error));
-            }
-        }
+        private int? _lastPort;
 
         /// <summary>
-        /// Local (Listener) UDP Socket.
+        ///     Thread for handling packets.
+        /// </summary>
+        private Thread _listener;
+
+        internal IPEndPoint EndPoint;
+
+        /// <summary>
+        ///     Local (Listener) UDP Socket.
         /// </summary>
         internal UdpClient Socket;
 
         /// <summary>
-        /// Thread for handling packets.
+        ///     Create communicator.
         /// </summary>
-        private Thread _listener;
-
-        private int? _lastPort;
+        public PksClient()
+        {
+        }
 
         /// <summary>
-        /// Local (Listener) Port.
+        ///     Create communicator than Open UDP socket and start recieving thread.
         /// </summary>
-        /// <exception cref="ThreadStartException"/>
-        /// <exception cref="System.Net.Sockets.SocketException"/>
+        /// <exception cref="System.Net.Sockets.SocketException" />
+        /// <exception cref="ThreadStartException" />
+        /// <exception cref="OutOfMemoryException" />
+        /// <param name="port">Port that will be used for communication.</param>
+        public PksClient(int? port) : this()
+        {
+            Port = port;
+        }
+
+        /// <summary>
+        ///     Local (Listener) Port.
+        /// </summary>
+        /// <exception cref="ThreadStartException" />
+        /// <exception cref="System.Net.Sockets.SocketException" />
         public int? Port
         {
             get { return ((IPEndPoint) Socket?.Client?.LocalEndPoint)?.Port; }
@@ -102,25 +68,24 @@ namespace PksUdp.Client
             }
         }
 
-        internal IPEndPoint EndPoint;
-
-        /// <summary>
-        /// Create communicator.
-        /// </summary>
-        public PksClient()
+        public void SendMessage(string text, int fragmentSize, Fragmenty error)
         {
+            if ((fragmentSize < 20) || (fragmentSize > 65470))
+                return;
+            lock (PoradovnikLock)
+            {
+                Poradovnik.Enqueue(new SpravaNaOdoslanie(text, fragmentSize, error));
+            }
         }
 
-        /// <summary>
-        /// Create communicator than Open UDP socket and start recieving thread.
-        /// </summary>
-        /// <exception cref="System.Net.Sockets.SocketException"/>
-        /// <exception cref="ThreadStartException"/>
-        /// <exception cref="OutOfMemoryException"/>
-        /// <param name="port">Port that will be used for communication.</param>
-        public PksClient(int? port) : this()
+        public void SendFile(string path, int fragmentSize, Fragmenty error)
         {
-            Port = port;
+            if ((fragmentSize < 20) || (fragmentSize > 65470))
+                return;
+            lock (PoradovnikLock)
+            {
+                Poradovnik.Enqueue(new SuborNaOdoslanie(path, fragmentSize, error));
+            }
         }
 
         public void Connect(string ip, int port)
@@ -151,17 +116,16 @@ namespace PksUdp.Client
 
         public void Connect(IPEndPoint endPoint)
         {
-            this.EndPoint = endPoint;
+            EndPoint = endPoint;
             Connect();
         }
 
         /// <summary>
-        /// Open UDP socket and start recieving thread.
+        ///     Open UDP socket and start recieving thread.
         /// </summary>
-        /// <exception cref="SocketException"/>
-        /// <exception cref="ThreadStartException"/>
-        /// <exception cref="OutOfMemoryException"/>
-        /// <param name="port">Port that will be used for communication.</param>
+        /// <exception cref="SocketException" />
+        /// <exception cref="ThreadStartException" />
+        /// <exception cref="OutOfMemoryException" />
         private void Init()
         {
             if (!_lastPort.HasValue)
@@ -182,13 +146,13 @@ namespace PksUdp.Client
         }
 
         /// <summary>
-        /// Abort recieving thread and close socket.
+        ///     Abort recieving thread and close socket.
         /// </summary>
-        /// <exception cref="ThreadStartException"/>
-        /// <exception cref="System.Net.Sockets.SocketException"/>
+        /// <exception cref="ThreadStartException" />
+        /// <exception cref="System.Net.Sockets.SocketException" />
         public void Close()
         {
-            if (_listener != null && _listener.IsAlive)
+            if ((_listener != null) && _listener.IsAlive)
             {
                 _listener.Abort();
                 _listener = null;
@@ -196,8 +160,7 @@ namespace PksUdp.Client
 
             if (Socket != null)
             {
-                if (Socket.Client != null && Socket.Client.Connected)
-                {
+                if ((Socket.Client != null) && Socket.Client.Connected)
                     try
                     {
                         var data = Extensions.DisconnectedPaket();
@@ -207,7 +170,6 @@ namespace PksUdp.Client
                     {
                         // ignored
                     }
-                }
                 try
                 {
                     Socket.Close();
@@ -222,6 +184,38 @@ namespace PksUdp.Client
             lock (PoradovnikLock)
             {
                 Poradovnik.Clear();
+            }
+        }
+
+        internal abstract class NaOdoslanie
+        {
+            internal readonly Fragmenty Error;
+            internal readonly int FragmentSize;
+
+            protected NaOdoslanie(int fragmentSize, Fragmenty error)
+            {
+                FragmentSize = fragmentSize;
+                Error = error;
+            }
+        }
+
+        internal class SpravaNaOdoslanie : NaOdoslanie
+        {
+            internal string Sprava;
+
+            public SpravaNaOdoslanie(string sprava, int fragmentSize, Fragmenty error) : base(fragmentSize, error)
+            {
+                Sprava = sprava;
+            }
+        }
+
+        internal class SuborNaOdoslanie : NaOdoslanie
+        {
+            internal readonly string Path;
+
+            public SuborNaOdoslanie(string path, int fragmentSize, Fragmenty error) : base(fragmentSize, error)
+            {
+                Path = path;
             }
         }
     }

@@ -7,6 +7,52 @@ namespace PksUdp.Server
 {
     public partial class PksServer
     {
+        /// <summary>
+        ///     Thread for handling packets.
+        /// </summary>
+        private Thread _thread;
+
+        /// <summary>
+        ///     Local (Listener) UDP Socket.
+        /// </summary>
+        internal UdpClient Socket;
+
+        /// <summary>
+        ///     Create communicator.
+        /// </summary>
+        public PksServer()
+        {
+        }
+
+        /// <summary>
+        ///     Create communicator than Open UDP socket and start recieving thread.
+        /// </summary>
+        /// <exception cref="SocketException" />
+        /// <exception cref="ThreadStartException" />
+        /// <exception cref="OutOfMemoryException" />
+        /// <param name="port">Port that will be used for communication.</param>
+        public PksServer(int port) : this()
+        {
+            Init(port);
+        }
+
+        /// <summary>
+        ///     Local (Listener) Port.
+        /// </summary>
+        /// <exception cref="ThreadStartException" />
+        /// <exception cref="SocketException" />
+        public int? Port
+        {
+            get { return ((IPEndPoint) Socket?.Client.LocalEndPoint)?.Port; }
+            set
+            {
+                if (!value.HasValue)
+                    return;
+                Close();
+                Init(value.Value);
+            }
+        }
+
         private static byte[] CreateFragment(Extensions.Type type, PaketId id, uint fragmentOrder)
         {
             var data = new byte[14];
@@ -18,65 +64,25 @@ namespace PksUdp.Server
             data.CreateChecksum();
             return data;
         }
+
         internal static byte[] CancelPaket(PaketId id) => CreateFragment(Extensions.Type.Cancel, id, 0);
         internal static byte[] FailPaket(PaketId id) => CreateFragment(Extensions.Type.Fail, id, 0);
         internal static byte[] FailPaket() => CreateFragment(Extensions.Type.Fail, new PaketId(0, 0), 0);
-        internal static byte[] SuccessPaket(PaketId id, uint fragmentCount) => CreateFragment(Extensions.Type.SuccessFull, id, fragmentCount);
-        
+
+        internal static byte[] SuccessPaket(PaketId id, uint fragmentCount)
+            => CreateFragment(Extensions.Type.SuccessFull, id, fragmentCount);
+
         internal static byte[] RetryPaket() => RetryFragment(new PaketId(0, 0), 0);
-        internal static byte[] RetryFragment(PaketId id, uint fragmentOrder) => CreateFragment(Extensions.Type.RetryFragment, id, fragmentOrder);
+
+        internal static byte[] RetryFragment(PaketId id, uint fragmentOrder)
+            => CreateFragment(Extensions.Type.RetryFragment, id, fragmentOrder);
 
         /// <summary>
-        /// Local (Listener) UDP Socket.
+        ///     Open UDP socket and start recieving thread.
         /// </summary>
-        internal UdpClient Socket;
-        /// <summary>
-        /// Thread for handling packets.
-        /// </summary>
-        private Thread _thread;
-
-        /// <summary>
-        /// Local (Listener) Port.
-        /// </summary>
-        /// <exception cref="ThreadStartException"/>
-        /// <exception cref="SocketException"/>
-        public int? Port
-        {
-            get { return ((IPEndPoint)Socket?.Client.LocalEndPoint)?.Port; }
-            set
-            {
-                if (!value.HasValue)
-                    return;
-                Close();
-                Init(value.Value);
-            }
-        }
-
-        /// <summary>
-        /// Create communicator.
-        /// </summary>
-        public PksServer()
-        {
-        }
-
-        /// <summary>
-        /// Create communicator than Open UDP socket and start recieving thread.
-        /// </summary>
-        /// <exception cref="SocketException"/>
-        /// <exception cref="ThreadStartException"/>
-        /// <exception cref="OutOfMemoryException"/>
-        /// <param name="port">Port that will be used for communication.</param>
-        public PksServer(int port) : this()
-        {
-            Init(port);
-        }
-
-        /// <summary>
-        /// Open UDP socket and start recieving thread.
-        /// </summary>
-        /// <exception cref="SocketException"/>
-        /// <exception cref="ThreadStartException"/>
-        /// <exception cref="OutOfMemoryException"/>
+        /// <exception cref="SocketException" />
+        /// <exception cref="ThreadStartException" />
+        /// <exception cref="OutOfMemoryException" />
         /// <param name="port">Port that will be used for communication.</param>
         private void Init(int port)
         {
@@ -99,10 +105,10 @@ namespace PksUdp.Server
         }
 
         /// <summary>
-        /// Abort recieving thread and close socket.
+        ///     Abort recieving thread and close socket.
         /// </summary>
-        /// <exception cref="ThreadStartException"/>
-        /// <exception cref="SocketException"/>
+        /// <exception cref="ThreadStartException" />
+        /// <exception cref="SocketException" />
         public void Close()
         {
             _thread?.Abort();

@@ -5,21 +5,10 @@ namespace PksUdp
 {
     public class PaketId
     {
-        public readonly int UnixTime;
+        private static DateTime _lastDate = DateTime.Now;
+        private static byte _id;
         public readonly byte Id;
-
-        internal bool Equals(PaketId other)
-        {
-            return UnixTime == other.UnixTime && Id == other.Id;
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                return (UnixTime * 397) ^ Id.GetHashCode();
-            }
-        }
+        public readonly int UnixTime;
 
         public PaketId(IReadOnlyList<byte> data, int index)
         {
@@ -36,9 +25,6 @@ namespace PksUdp
             Id = id;
         }
 
-        private static DateTime _lastDate = DateTime.Now;
-        private static byte _id;
-
         public PaketId()
         {
             var now = DateTime.Now;
@@ -52,8 +38,21 @@ namespace PksUdp
                 _id = 0;
             }
 
-            UnixTime = (int)_lastDate.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
+            UnixTime = (int) _lastDate.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
             Id = _id;
+        }
+
+        internal bool Equals(PaketId other)
+        {
+            return (UnixTime == other.UnixTime) && (Id == other.Id);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (UnixTime*397) ^ Id.GetHashCode();
+            }
         }
     }
 }

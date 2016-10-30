@@ -6,7 +6,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Timers;
 using Timer = System.Timers.Timer;
 
@@ -15,64 +14,81 @@ namespace PksUdp.Server
     internal class ServerThread
     {
         /// <summary>
-        /// Maximalny pocet opakovani pre znovu vziadanie fragmentu.
+        ///     Maximalny pocet opakovani pre znovu vziadanie fragmentu.
         /// </summary>
         private const int MaxRetry = 5;
-        /// <summary>
-        /// Aktualny pokus znovu vyziadania fragmentu.
-        /// </summary>
-        private int _attemp;
+
+        private readonly object _clientLock = new object();
+
+        private readonly object _fragmentLock = new object();
 
         /// <summary>
-        /// Udp Socket.
+        ///     Ulozisko dat pre fragmenty.
+        /// </summary>
+        private readonly Dictionary<uint, byte[]> _fragments = new Dictionary<uint, byte[]>();
+
+        private readonly Timer _pingTimer = new Timer {Interval = 30000, AutoReset = true};
+
+        /// <summary>
+        ///     Udp Socket.
         /// </summary>
         private readonly PksServer _pksServer;
 
-        private readonly object _fragmentLock = new object();
-        private readonly object _clientLock = new object();
+        /// <summary>
+        ///     Timer pre znovu vyziadanie fragmentov.
+        /// </summary>
+        private readonly Timer _recieveTimer = new Timer {Interval = 1000, AutoReset = false};
 
         /// <summary>
-        /// Udaje o klientovi.
+        ///     Aktualny pokus znovu vyziadania fragmentu.
         /// </summary>
-        private IPEndPoint Client
-        {
-            get { return _client; }
-            set { _pingTimer.Stop(); _client = value; if(value != null) _pingTimer.Start(); }
-        }
+        private int _attemp;
+
+        private IPEndPoint _client;
 
         /// <summary>
-        /// Posledny typ spravy.
-        /// </summary>
-        private Extensions.Type _lastFragmentType = Extensions.Type.Nothing;
-        /// <summary>
-        /// Celkovy pocet fragmentov pre spravu.
+        ///     Celkovy pocet fragmentov pre spravu.
         /// </summary>
         private long _fragmentCount = -1;
+
         /// <summary>
-        /// Dlzka fragmentu.
+        ///     Dlzka fragmentu.
         /// </summary>
         private int _fragmentLength = -1;
+
+        private long _last;
+
         /// <summary>
-        /// Ulozisko dat pre fragmenty.
+        ///     Posledny typ spravy.
         /// </summary>
-        private readonly Dictionary<uint, byte[]> _fragments = new Dictionary<uint, byte[]>();
+        private Extensions.Type _lastFragmentType = Extensions.Type.Nothing;
+
         /// <summary>
-        /// Id spravy.
+        ///     Id spravy.
         /// </summary>
         private PaketId _lastId;
 
-        /// <summary>
-        /// Timer pre znovu vyziadanie fragmentov.
-        /// </summary>
-        private readonly Timer _recieveTimer = new Timer { Interval = 1000, AutoReset = false};
-        private readonly Timer _pingTimer = new Timer { Interval = 30000, AutoReset = true};
-        private IPEndPoint _client;
+        private long? _lastValid;
 
         internal ServerThread(PksServer pksServer)
         {
             _pksServer = pksServer;
             _recieveTimer.Elapsed += _recieveTimer_Elapsed;
-            _pingTimer.Elapsed += _pingTimer_Elapsed; ;
+            _pingTimer.Elapsed += _pingTimer_Elapsed;
+        }
+
+        /// <summary>
+        ///     Udaje o klientovi.
+        /// </summary>
+        private IPEndPoint Client
+        {
+            get { return _client; }
+            set
+            {
+                _pingTimer.Stop();
+                _client = value;
+                if (value != null) _pingTimer.Start();
+            }
         }
 
         private void _pingTimer_Elapsed(object sender, ElapsedEventArgs e)
@@ -81,23 +97,19 @@ namespace PksUdp.Server
         }
 
         /// <summary>
-        /// Ping client to keep connection alive.
+        ///     Ping client to keep connection alive.
         /// </summary>
         private void PingClient()
         {
             lock (_clientLock)
             {
                 if (Client == null)
-                {
                     return;
-                }
 
                 var data = Extensions.PingPaket();
                 _pksServer.Socket.Send(data, data.Length, Client);
             }
         }
-
-        private long _last = 0;
 
         private void _recieveTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
@@ -105,9 +117,7 @@ namespace PksUdp.Server
             if (_attemp < MaxRetry)
             {
                 if (_last == _fragments.LongCount())
-                {
                     ++_attemp;
-                }
                 _last = _fragments.LongCount();
                 AskForFragments();
                 _recieveTimer.Start();
@@ -116,27 +126,22 @@ namespace PksUdp.Server
             PaketFailed((uint) _fragmentCount, _lastId, Client);
         }
 
-        private long? _lastValid;
-
         /// <summary>
-        /// Znovu vyziadaj vsetky chybajuce fragmenty.
+        ///     Znovu vyziadaj vsetky chybajuce fragmenty.
         /// </summary>
         private /*async*/ void AskForFragments()
         {
             //var sendList = new List<Task<int>>();
 
 
-
             lock (_clientLock)
             {
                 if (Client == null)
-                {
                     return;
-                }
 
                 lock (_fragmentLock)
                 {
-                    if (_fragments.LongCount() == 0 || _fragmentCount == -1)
+                    if ((_fragments.LongCount() == 0) || (_fragmentCount == -1))
                     {
                         _pksServer.OnBuffering(Client, null, 0, null);
                         var data = PksServer.RetryPaket();
@@ -148,15 +153,15 @@ namespace PksUdp.Server
                         const int maxPerAsking = 5000;
                         var asked = 0;
                         var missing = _fragmentCount - _fragments.LongCount();
-                        _pksServer.OnBuffering(Client, _lastId, (uint)_fragments.LongCount(), (uint)_fragmentCount);
-                        for (var i = _lastValid ?? 0; missing > 0 && i < _fragmentCount && asked < maxPerAsking; i++)
+                        _pksServer.OnBuffering(Client, _lastId, (uint) _fragments.LongCount(), (uint) _fragmentCount);
+                        for (var i = _lastValid ?? 0;
+                            (missing > 0) && (i < _fragmentCount) && (asked < maxPerAsking);
+                            i++)
                         {
                             if (_fragments.ContainsKey((uint) i)) continue;
                             if (_lastValid == null)
-                            {
                                 _lastValid = i;
-                            }
-                            var data = PksServer.RetryFragment(_lastId, (uint)i);
+                            var data = PksServer.RetryFragment(_lastId, (uint) i);
                             //sendList.Add(_pksServer.Socket.SendAsync(data, data.Length, Client));
                             _pksServer.Socket.SendAsync(data, data.Length, Client);
                             ++asked;
@@ -178,7 +183,6 @@ namespace PksUdp.Server
             var sender = new IPEndPoint(IPAddress.Any, 0);
 
             for (;;)
-            {
                 try
                 {
                     _recieveTimer.Start();
@@ -186,9 +190,7 @@ namespace PksUdp.Server
                     var bytes = _pksServer.Socket.Receive(ref sender);
 
                     if (FilterClients(sender))
-                    {
                         continue;
-                    }
 
                     _recieveTimer.Stop();
 
@@ -198,9 +200,7 @@ namespace PksUdp.Server
                         lock (_clientLock)
                         {
                             if (_client == null)
-                            {
                                 bytes = PksServer.FailPaket();
-                            }
                         }
                         if (bytes != null)
                         {
@@ -208,33 +208,23 @@ namespace PksUdp.Server
                             continue;
                         }
                         if (_lastFragmentType == Extensions.Type.Nothing)
-                        {
                             AskForFragments();
-                        }
                         continue;
                     }
 
                     var type = bytes.GetPaketType();
 
                     if (SpracujPripojenieOdpojenieKlienta(type, sender))
-                    {
                         continue;
-                    }
 
-                    if (_lastFragmentType != Extensions.Type.Nothing && type != _lastFragmentType)
-                    {
+                    if ((_lastFragmentType != Extensions.Type.Nothing) && (type != _lastFragmentType))
                         continue;
-                    }
                     if (type == Extensions.Type.Ping)
-                    {
                         continue;
-                    }
 
                     var id = bytes.GetFragmentId();
-                    if (_lastId != null && !_lastId.Equals(id))
-                    {
+                    if ((_lastId != null) && !_lastId.Equals(id))
                         continue;
-                    }
                     _lastId = id;
 
                     switch (type)
@@ -265,16 +255,14 @@ namespace PksUdp.Server
                 catch (SocketException ex)
                 {
                     // ConnectionReset = An existing connection was forcibly closed by the remote host
-                    if (ex.SocketErrorCode == SocketError.ConnectionReset || ex.SocketErrorCode == SocketError.TimedOut)
+                    if ((ex.SocketErrorCode == SocketError.ConnectionReset) ||
+                        (ex.SocketErrorCode == SocketError.TimedOut))
                     {
                         lock (_clientLock)
                         {
                             if (Client == null)
-                            {
                                 continue;
-                            }
                             Client = null;
-
                         }
                         _pksServer.OnClientTimedOut(sender);
                     }
@@ -293,20 +281,14 @@ namespace PksUdp.Server
                     _pksServer.OnServerDown(e);
                     return;
                 }
-            }
         }
 
         private void SpracujSubor(byte[] bytes, PaketId id, IPEndPoint sender)
         {
             if (!bytes.IsFragmented())
-            {
                 SpracujNefragmentovanySubor(bytes, id, sender);
-            }
             else
-            {
                 SpracujFragmentovanySubor(bytes, id, sender);
-            }
-
         }
 
         private void SpracujFragmentovanySubor(byte[] bytes, PaketId id, IPEndPoint sender)
@@ -322,7 +304,9 @@ namespace PksUdp.Server
                     if (!_fragments.ContainsKey(order))
                     {
                         _fragmentCount = bytes.GetFragmentCount() + 1;
-                        _fragments.Add(order, bytes.SubArray(Extensions.FragmentDataf0Index, bytes.Length - Extensions.FragmentDataf0Index - 3));
+                        _fragments.Add(order,
+                            bytes.SubArray(Extensions.FragmentDataf0Index,
+                                bytes.Length - Extensions.FragmentDataf0Index - 3));
                     }
                 }
                 else
@@ -340,12 +324,12 @@ namespace PksUdp.Server
                         else
                         {
                             if (order >= _fragmentCount)
-                            {
                                 _fragmentCount = order + 1;
-                            }
                         }
 
-                        _fragments.Add(order, bytes.SubArray(Extensions.FragmentDatafIndex, bytes.Length - Extensions.FragmentDatafIndex - 3));
+                        _fragments.Add(order,
+                            bytes.SubArray(Extensions.FragmentDatafIndex,
+                                bytes.Length - Extensions.FragmentDatafIndex - 3));
                     }
                 }
             }
@@ -357,7 +341,7 @@ namespace PksUdp.Server
 
         private void SpojFragmentySuboru(PaketId id, IPEndPoint sender)
         {
-            var data = PksServer.SuccessPaket(id, (uint)_fragmentCount);
+            var data = PksServer.SuccessPaket(id, (uint) _fragmentCount);
             _pksServer.Socket.Send(data, data.Length, sender);
 
             var fileNameLength = 0;
@@ -367,12 +351,10 @@ namespace PksUdp.Server
             FileStream file = null;
 
             var off = 0;
-            for (uint i = 0; i < (uint)_fragmentCount; i++)
-            {
-                if (off < 4 || off - 4 < fileNameLength)
+            for (uint i = 0; i < (uint) _fragmentCount; i++)
+                if ((off < 4) || (off - 4 < fileNameLength))
                 {
                     for (var j = 0; j < _fragments[i].Length; j++)
-                    {
                         if (j + off < 4)
                         {
                             fileNameLength |= (byte) (_fragments[i][j] << ((3 - (j + off))*8));
@@ -380,9 +362,7 @@ namespace PksUdp.Server
                         else if (j + off < fileNameLength + 4)
                         {
                             if (utf8 == null)
-                            {
                                 utf8 = new byte[fileNameLength];
-                            }
                             utf8[u++] = _fragments[i][j];
                         }
                         else
@@ -394,7 +374,6 @@ namespace PksUdp.Server
                             }
                             file.WriteByte(_fragments[i][j]);
                         }
-                    }
                     off += _fragments[i].Length;
                 }
                 else
@@ -407,14 +386,13 @@ namespace PksUdp.Server
                     file.Write(_fragments[i], 0, _fragments[i].Length);
                     //off += _fragments[i].Length;
                 }
-            }
             file?.Close();
 
-            _pksServer.OnReceivedFile(sender, new FilePacket()
+            _pksServer.OnReceivedFile(sender, new FilePacket
             {
                 FileInfo = new FileInfo(fileName),
                 Error = false,
-                FragmentsCount = (uint)_fragmentCount,
+                FragmentsCount = (uint) _fragmentCount,
                 FragmentLength = _fragmentLength,
                 PaketId = id
             });
@@ -423,7 +401,7 @@ namespace PksUdp.Server
 
         private void SpracujNefragmentovanySubor(byte[] bytes, PaketId id, IPEndPoint sender)
         {
-            var data = PksServer.SuccessPaket(id, (uint)_fragmentCount);
+            var data = PksServer.SuccessPaket(id, (uint) _fragmentCount);
             _pksServer.Socket.Send(data, data.Length, sender);
 
             var nameSize = bytes[Extensions.FragmentDataIndex] << 24;
@@ -432,14 +410,23 @@ namespace PksUdp.Server
             nameSize |= bytes[Extensions.FragmentDataIndex + 3];
             var name = Encoding.UTF8.GetString(bytes, Extensions.FragmentDataIndex + 4, nameSize);
             var file = File.Create(name);
-            file.Write(bytes, Extensions.FragmentDataIndex + 4 + nameSize, bytes.Length - (Extensions.FragmentDataIndex + 4 + nameSize) - 3);
+            file.Write(bytes, Extensions.FragmentDataIndex + 4 + nameSize,
+                bytes.Length - (Extensions.FragmentDataIndex + 4 + nameSize) - 3);
             file.Close();
-            _pksServer.OnReceivedFile(sender, new FilePacket {Error = false, FileInfo = new FileInfo(name), FragmentLength = bytes.Length, FragmentsCount = 1, PaketId = id});
+            _pksServer.OnReceivedFile(sender,
+                new FilePacket
+                {
+                    Error = false,
+                    FileInfo = new FileInfo(name),
+                    FragmentLength = bytes.Length,
+                    FragmentsCount = 1,
+                    PaketId = id
+                });
             ResetCounter();
         }
 
         /// <summary>
-        /// Vrati 'true' pokail netreba fragment dalej srpacovavat.
+        ///     Vrati 'true' pokail netreba fragment dalej srpacovavat.
         /// </summary>
         /// <param name="type">Typ spravy</param>
         /// <param name="client"></param>
@@ -459,9 +446,7 @@ namespace PksUdp.Server
                 }
 
                 if (_client == null)
-                {
                     return true;
-                }
 
                 if (type != Extensions.Type.Disconnect) return false;
 
@@ -472,42 +457,36 @@ namespace PksUdp.Server
         }
 
         /// <summary>
-        /// Vrati 'true' pokial je sprava od ineho pouzivatela.
+        ///     Vrati 'true' pokial je sprava od ineho pouzivatela.
         /// </summary>
         /// <param name="sender">Pouzivatel</param>
         private bool FilterClients(IPEndPoint sender)
         {
             lock (_clientLock)
             {
-                if (Client != null && (!Client.Address.Equals(sender.Address) || !Client.Port.Equals(sender.Port)))
-                {
+                if ((Client != null) && (!Client.Address.Equals(sender.Address) || !Client.Port.Equals(sender.Port)))
                     return true;
-                }
             }
             return false;
         }
 
         /// <summary>
-        /// Skontroluje ci fragment splna minimalne poziadavky.
+        ///     Skontroluje ci fragment splna minimalne poziadavky.
         /// </summary>
         /// <param name="bytes">fragment</param>
         private static bool IsFragmentCorrect(byte[] bytes)
         {
             if (bytes.Length < 5)
-            {
                 return false;
-            }
 
-            if (bytes[0] != 0x7E && bytes[bytes.Length-1] != 0x7E)
-            {
+            if ((bytes[0] != 0x7E) && (bytes[bytes.Length - 1] != 0x7E))
                 return false;
-            }
 
             return bytes.CheckChecksum();
         }
 
         /// <summary>
-        /// Spracuj fragment typu Message.
+        ///     Spracuj fragment typu Message.
         /// </summary>
         /// <param name="bytes">Fragment</param>
         /// <param name="id">Id spravy</param>
@@ -515,17 +494,13 @@ namespace PksUdp.Server
         private void SpracujSpravu(byte[] bytes, PaketId id, IPEndPoint sender)
         {
             if (!bytes.IsFragmented())
-            {
                 SpracujNefragmentovanuSpravu(bytes, id, sender);
-            }
             else
-            {
                 SpracujFragmentovanuSpravu(bytes, id, sender);
-            }
         }
 
         /// <summary>
-        /// Ulozi si fragment.
+        ///     Ulozi si fragment.
         /// </summary>
         /// <param name="bytes">Fragment</param>
         /// <param name="id">Id spravy</param>
@@ -543,7 +518,9 @@ namespace PksUdp.Server
                     if (!_fragments.ContainsKey(order))
                     {
                         _fragmentCount = bytes.GetFragmentCount() + 1;
-                        _fragments.Add(order, bytes.SubArray(Extensions.FragmentDataf0Index, bytes.Length - Extensions.FragmentDataf0Index - 3));
+                        _fragments.Add(order,
+                            bytes.SubArray(Extensions.FragmentDataf0Index,
+                                bytes.Length - Extensions.FragmentDataf0Index - 3));
                     }
                 }
                 else
@@ -561,12 +538,12 @@ namespace PksUdp.Server
                         else
                         {
                             if (order >= _fragmentCount)
-                            {
                                 _fragmentCount = order + 1;
-                            }
                         }
 
-                        _fragments.Add(order, bytes.SubArray(Extensions.FragmentDatafIndex, bytes.Length - Extensions.FragmentDatafIndex - 3));
+                        _fragments.Add(order,
+                            bytes.SubArray(Extensions.FragmentDatafIndex,
+                                bytes.Length - Extensions.FragmentDatafIndex - 3));
                     }
                 }
             }
@@ -577,18 +554,18 @@ namespace PksUdp.Server
         }
 
         /// <summary>
-        /// Vysle event o prijati srpavy.
+        ///     Vysle event o prijati srpavy.
         /// </summary>
         /// <param name="id">Id spravy</param>
         /// <param name="sender">client</param>
         private void SpojFragmentySpravy(PaketId id, IPEndPoint sender)
         {
-            var data = PksServer.SuccessPaket(id, (uint)_fragmentCount);
+            var data = PksServer.SuccessPaket(id, (uint) _fragmentCount);
             _pksServer.Socket.Send(data, data.Length, sender);
 
             var utf8 = new byte[0];
 
-            for(uint i = 0; i < (uint)_fragmentCount; i++)
+            for (uint i = 0; i < (uint) _fragmentCount; i++)
             {
                 var oldSize = utf8.Length;
                 Array.Resize(ref utf8, utf8.Length + _fragments[i].Length);
@@ -607,7 +584,7 @@ namespace PksUdp.Server
         }
 
         /// <summary>
-        /// Vysle event o prijati spravy.
+        ///     Vysle event o prijati spravy.
         /// </summary>
         /// <param name="bytes">Fragment</param>
         /// <param name="id">Id spravy</param>
@@ -630,7 +607,7 @@ namespace PksUdp.Server
         }
 
         /// <summary>
-        /// Vysle event o neuspesnom prijati spravy a vynuluje pocitadla.
+        ///     Vysle event o neuspesnom prijati spravy a vynuluje pocitadla.
         /// </summary>
         /// <param name="count">Predpokladany pocet fragmentov</param>
         /// <param name="id">Id spravy</param>
@@ -665,7 +642,7 @@ namespace PksUdp.Server
         }
 
         /// <summary>
-        /// Set all values to default.
+        ///     Set all values to default.
         /// </summary>
         private void ResetCounter()
         {

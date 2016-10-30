@@ -3,16 +3,16 @@
 namespace PksUdp
 {
     /// <summary>
-    /// Paket containing string as Data.
+    ///     Paket containing string as Data.
     /// </summary>
     public class Message : Packet
     {
         private string _text;
 
         /// <summary>
-        /// Recieved message.
+        ///     Recieved message.
         /// </summary>
-        /// <exception cref="InvalidOperationException"/>
+        /// <exception cref="InvalidOperationException" />
         public string Text
         {
             internal set { _text = value; }

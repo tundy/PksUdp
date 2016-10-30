@@ -5,16 +5,15 @@ namespace PksUdp
 {
     internal abstract class PaketFragments
     {
+        internal readonly List<byte[]> Fragments = new List<byte[]>();
         internal readonly PaketId PaketId;
-
-
-        internal readonly List<byte[]> fragments = new List<byte[]>();
-        internal uint FragmentCount => (uint)fragments.LongCount();
-        internal uint FragmentLength => (uint)fragments.First().LongLength;
 
         protected PaketFragments(PaketId paketId)
         {
             PaketId = paketId;
         }
+
+        internal uint FragmentCount => (uint) Fragments.LongCount();
+        internal uint FragmentLength => (uint) Fragments.First().LongLength;
     }
 }

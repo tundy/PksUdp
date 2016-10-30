@@ -3,7 +3,6 @@
 namespace PksUdp
 {
     /// <summary>
-    /// 
     /// </summary>
     public class FilePacket : Packet
     {

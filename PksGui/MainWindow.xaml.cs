@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -12,19 +13,13 @@ using PksUdp.Server;
 namespace PksGui
 {
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    ///     Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow
     {
-        private readonly PksServer _pksServer;
         private readonly PksClient _pksClient;
+        private readonly PksServer _pksServer;
         private bool _lastStateServer;
-
-        ~MainWindow()
-        {
-            _pksServer?.Close();
-            _pksClient?.Close();
-        }
 
         public MainWindow()
         {
@@ -47,6 +42,12 @@ namespace PksGui
             _pksClient.ClientError += _pksClient_ClientError;
         }
 
+        ~MainWindow()
+        {
+            _pksServer?.Close();
+            _pksClient?.Close();
+        }
+
         private void _pksServer_ServerDown(Exception e)
         {
             if (!_lastStateServer) return;
@@ -61,7 +62,7 @@ namespace PksGui
             {
                 Output.AppendTextAndScroll(total == null
                     ? $"{DateTime.Now}: Nepodarilo sa identifikovať správu{Environment.NewLine}"
-                    : $"{DateTime.Now}: Mám zatiaľ načítaných {loaded} z {total.Value} fragmentov ({(loaded*100)/(total.Value)})%{Environment.NewLine}");
+                    : $"{DateTime.Now}: Mám zatiaľ načítaných {loaded} z {total.Value} fragmentov ({loaded*100/total.Value})%{Environment.NewLine}");
             });
         }
 
@@ -69,16 +70,15 @@ namespace PksGui
         {
             if (!success)
             {
-                Output.Dispatcher.Invoke(() =>
-                {
-                    Output.AppendTextAndScroll($"{DateTime.Now}: Neúspešné odoslanie súboru.{Environment.NewLine}");
-                });
+                Output.Dispatcher.Invoke(
+                    () =>
+                    {
+                        Output.AppendTextAndScroll($"{DateTime.Now}: Neúspešné odoslanie súboru.{Environment.NewLine}");
+                    });
                 return;
             }
-            Output.Dispatcher.Invoke(() =>
-            {
-                Output.AppendTextAndScroll($"{DateTime.Now}: Úspešné odoslanie súboru.{Environment.NewLine}");
-            });
+            Output.Dispatcher.Invoke(
+                () => { Output.AppendTextAndScroll($"{DateTime.Now}: Úspešné odoslanie súboru.{Environment.NewLine}"); });
         }
 
         private void _pksServer_ReceivedFile(IPEndPoint endPoint, FilePacket file)
@@ -127,16 +127,15 @@ namespace PksGui
         {
             if (!success)
             {
-                Output.Dispatcher.Invoke(() =>
-                {
-                    Output.AppendTextAndScroll($"{DateTime.Now}: Neúspešné odoslanie správy.{Environment.NewLine}");
-                });
+                Output.Dispatcher.Invoke(
+                    () =>
+                    {
+                        Output.AppendTextAndScroll($"{DateTime.Now}: Neúspešné odoslanie správy.{Environment.NewLine}");
+                    });
                 return;
             }
-            Output.Dispatcher.Invoke(() =>
-            {
-                Output.AppendTextAndScroll($"{DateTime.Now}: Úspešné odoslanie správy.{Environment.NewLine}");
-            });
+            Output.Dispatcher.Invoke(
+                () => { Output.AppendTextAndScroll($"{DateTime.Now}: Úspešné odoslanie správy.{Environment.NewLine}"); });
         }
 
         private void _pksClient_ClientConnected()
@@ -184,7 +183,8 @@ namespace PksGui
             Output.Dispatcher.Invoke(
                 () =>
                 {
-                    Output.AppendTextAndScroll($"({endPoint}) {DateTime.Now}: Prerušilo sa spojenie zo serverom{Environment.NewLine}");
+                    Output.AppendTextAndScroll(
+                        $"({endPoint}) {DateTime.Now}: Prerušilo sa spojenie zo serverom{Environment.NewLine}");
                 });
         }
 
@@ -255,7 +255,6 @@ namespace PksGui
 
             ushort port;
             if (!ushort.TryParse(ThisPort.Text, out port))
-            {
                 try
                 {
                     _pksClient.Port = null;
@@ -265,8 +264,6 @@ namespace PksGui
                     Output.AppendTextAndScroll($"{ex.Message}{Environment.NewLine}");
                     return;
                 }
-
-            }
             try
             {
                 _pksClient.Port = port;
@@ -332,21 +329,15 @@ namespace PksGui
 
             PksClient.Fragmenty f;
             if (Vsetky.IsChecked == true)
-            {
                 f = PksClient.Fragmenty.VsetkyChybne;
-            }
             else if (Prvy.IsChecked == true)
-            {
                 f = PksClient.Fragmenty.PrvyChybny;
-            }
             else
-            {
                 f = PksClient.Fragmenty.ZiadneChybne;
-            }
             _pksClient.SendMessage(Input.Text, size, f);
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private void Window_Closing(object sender, CancelEventArgs e)
         {
             _pksServer?.Close();
             _pksClient?.Close();
@@ -354,7 +345,7 @@ namespace PksGui
 
         private void Input_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key != Key.Enter || Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) return;
+            if ((e.Key != Key.Enter) || Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) return;
             Button_Click_1(sender, e);
             e.Handled = true;
         }
@@ -398,19 +389,12 @@ namespace PksGui
 
             PksClient.Fragmenty f;
             if (Vsetky.IsChecked == true)
-            {
                 f = PksClient.Fragmenty.VsetkyChybne;
-            }
             else if (Prvy.IsChecked == true)
-            {
                 f = PksClient.Fragmenty.PrvyChybny;
-            }
             else
-            {
                 f = PksClient.Fragmenty.ZiadneChybne;
-            }
             _pksClient.SendFile(FilePath.Text, size, f);
         }
     }
-
 }

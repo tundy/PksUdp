@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 
 namespace PksGui
 {
@@ -13,7 +14,8 @@ namespace PksGui
             //output.CaretIndex = output.Text.Length;
             output.ScrollToEnd();
         }
-        internal static bool IsScrolledToEnd(this TextBox textBox)
+
+        private static bool IsScrolledToEnd(this TextBoxBase textBox)
         {
             if (textBox.ViewportHeight > textBox.ExtentHeight) return true;
             return Math.Abs(textBox.VerticalOffset + textBox.ViewportHeight - textBox.ExtentHeight) < 1;
