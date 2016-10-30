@@ -37,7 +37,7 @@ namespace PksUdp.Server
         /// <summary>
         ///     Timer pre znovu vyziadanie fragmentov.
         /// </summary>
-        private readonly Timer _recieveTimer = new Timer {Interval = 1000, AutoReset = false};
+        private readonly Timer _recieveTimer = new Timer {Interval = 500, AutoReset = false};
 
         /// <summary>
         ///     Aktualny pokus znovu vyziadania fragmentu.
