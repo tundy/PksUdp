@@ -293,9 +293,21 @@ namespace PksGui
         private void Button_Click_1(object sender, RoutedEventArgs e)
         {
             int size;
-            if (!int.TryParse(FragmentSize.Text, out size) || size > 65470)
+            if (!int.TryParse(FragmentSize.Text, out size))
             {
                 Output.AppendTextAndScroll($"Nepodarilo sa nacitat velkost fragmentu.{Environment.NewLine}");
+                return;
+            }
+
+            if (size > 65470)
+            {
+                Output.AppendTextAndScroll($"Velkost fragmentu nemoze byt vacsia ako 65470.{Environment.NewLine}");
+                return;
+            }
+
+            if (size < 20)
+            {
+                Output.AppendTextAndScroll($"Velkost fragmentu nemoze byt mensia ako 20.{Environment.NewLine}");
                 return;
             }
 
@@ -334,9 +346,21 @@ namespace PksGui
         private void Button_Click_3(object sender, RoutedEventArgs e)
         {
             int size;
-            if (!int.TryParse(FragmentSize.Text, out size) || size > 65470)
+            if (!int.TryParse(FragmentSize.Text, out size))
             {
                 Output.AppendTextAndScroll($"Nepodarilo sa nacitat velkost fragmentu.{Environment.NewLine}");
+                return;
+            }
+
+            if (size > 65470)
+            {
+                Output.AppendTextAndScroll($"Velkost fragmentu nemoze byt vacsia ako 65470.{Environment.NewLine}");
+                return;
+            }
+
+            if (size < 20)
+            {
+                Output.AppendTextAndScroll($"Velkost fragmentu nemoze byt mensia ako 20.{Environment.NewLine}");
                 return;
             }
 

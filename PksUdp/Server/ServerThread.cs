@@ -103,6 +103,7 @@ namespace PksUdp.Server
             if (_attemp++ < MaxRetry)
             {
                 AskForFragments();
+                _recieveTimer.Start();
                 return;
             }
             PaketFailed((uint) _fragmentCount, _lastId, Client);
@@ -278,7 +279,114 @@ namespace PksUdp.Server
 
         private void SpracujFragmentovanySubor(byte[] bytes, PaketId id, IPEndPoint sender)
         {
-            _lastFragmentType = Extensions.Type.Nothing;
+            var order = bytes.GetFragmentOrder();
+            lock (_fragmentLock)
+            {
+                if (_fragmentLength < bytes.Length)
+                    _fragmentLength = bytes.Length;
+
+                if (order == 0)
+                {
+                    if (!_fragments.ContainsKey(order))
+                    {
+                        _fragmentCount = bytes.GetFragmentCount() + 1;
+                        _fragments.Add(order, bytes.SubArray(Extensions.FragmentDataf0Index, bytes.Length - Extensions.FragmentDataf0Index - 3));
+                    }
+                }
+                else
+                {
+                    if (!_fragments.ContainsKey(order))
+                    {
+                        if (_fragments.ContainsKey(0))
+                        {
+                            if (order >= _fragmentCount)
+                            {
+                                PaketFailed(order, id, sender);
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            if (order >= _fragmentCount)
+                            {
+                                _fragmentCount = order + 1;
+                            }
+                        }
+
+                        _fragments.Add(order, bytes.SubArray(Extensions.FragmentDatafIndex, bytes.Length - Extensions.FragmentDatafIndex - 3));
+                    }
+                }
+            }
+
+            if (_fragments.LongCount() != _fragmentCount) return;
+
+            SpojFragmentySuboru(id, sender);
+        }
+
+        private void SpojFragmentySuboru(PaketId id, IPEndPoint sender)
+        {
+            var data = PksServer.SuccessPaket(id, (uint)_fragmentCount);
+            _pksServer.Socket.Send(data, data.Length, sender);
+
+            var fileNameLength = 0;
+            var u = 0;
+            byte[] utf8 = null;
+            string fileName = null;
+            FileStream file = null;
+
+            var off = 0;
+            for (uint i = 0; i < (uint)_fragmentCount; i++)
+            {
+                if (off < 4 || off - 4 < fileNameLength)
+                {
+                    for (var j = 0; j < _fragments[i].Length; j++)
+                    {
+                        if (j + off < 4)
+                        {
+                            fileNameLength |= (byte) (_fragments[i][j] << ((3 - (j + off))*8));
+                        }
+                        else if (j + off < fileNameLength + 4)
+                        {
+                            if (utf8 == null)
+                            {
+                                utf8 = new byte[fileNameLength];
+                            }
+                            utf8[u++] = _fragments[i][j];
+                        }
+                        else
+                        {
+                            if (fileName == null)
+                            {
+                                fileName = Encoding.UTF8.GetString(utf8);
+                                file = File.Create(fileName);
+                            }
+                            file.WriteByte(_fragments[i][j]);
+                        }
+                    }
+                    off += _fragments[i].Length;
+                }
+                else
+                {
+                    if (fileName == null)
+                    {
+                        fileName = Encoding.UTF8.GetString(utf8);
+                        file = File.Create(fileName);
+                    }
+                    file.Write(_fragments[i], 0, _fragments[i].Length);
+                    //off += _fragments[i].Length;
+                }
+            }
+            file?.Close();
+
+            _pksServer.OnReceivedFile(sender, new FilePacket()
+            {
+                FileInfo = new FileInfo(fileName),
+                Error = false,
+                FragmentsCount = (uint)_fragmentCount,
+                FragmentLength = _fragmentLength,
+                PaketId = id
+            });
+            ResetCounter();
         }
 
         private void SpracujNefragmentovanySubor(byte[] bytes, PaketId id, IPEndPoint sender)

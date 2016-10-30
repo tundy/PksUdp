@@ -46,6 +46,10 @@ namespace PksUdp.Client
 
         public void SendMessage(string text, int fragmentSize, bool error)
         {
+            if (fragmentSize < 20 || fragmentSize > 65470)
+            {
+                return;
+            }
             lock (PoradovnikLock)
             {
                 Poradovnik.Enqueue(new SpravaNaOdoslanie(text, fragmentSize, error));
@@ -54,6 +58,10 @@ namespace PksUdp.Client
 
         public void SendFile(string path, int fragmentSize, bool error)
         {
+            if (fragmentSize < 20 || fragmentSize > 65470)
+            {
+                return;
+            }
             lock (PoradovnikLock)
             {
                 Poradovnik.Enqueue(new SuborNaOdoslanie(path, fragmentSize, error));
