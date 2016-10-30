@@ -214,7 +214,7 @@ namespace PksUdp.Client
                 _lastMessage = new MessageFragments(new PaketId());
                 RozdelSpravuNaFragmenty((MessageFragments)_lastMessage, odoslanie);
                 var prvy = true;
-                foreach (var fragment in ((MessageFragments)_lastMessage).fragments)
+                foreach (var fragment in _lastMessage.fragments)
                 {
                     if (odoslanie.Error && prvy)
                     {
@@ -248,6 +248,20 @@ namespace PksUdp.Client
                     else
                     {
                         SendFileFragmented(info, fSize, size, fileName, naOdoslanie.Error);
+                    }
+
+                    var prvy = true;
+                    foreach (var fragment in _lastMessage.fragments)
+                    {
+                        if (naOdoslanie.Error && prvy)
+                        {
+                            var temp = (byte[])fragment.Clone();
+                            temp[temp.Length - 2]++;
+                            _pksClient.Socket.Client.Send(temp, temp.Length, SocketFlags.None);
+                            prvy = false;
+                            continue;
+                        }
+                        _pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
                     }
                 }
             }
@@ -290,14 +304,13 @@ namespace PksUdp.Client
             var velkost = fSize - 14;
             var count = (uint)((zostava + velkost - 1) / velkost);
 
-            _lastMessage = new FileFragments(info.FullName, count, fSize, id);
+            _lastMessage = new FileFragments(info.FullName, id);
 
             fragment.SetFragmentCount(count);
             fragment.CreateChecksum();
-            if (naOdoslanieError)
-                ++fragment[fragment.Length - 2];
 
-            _pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
+            _lastMessage.fragments.Add(fragment);
+            //_pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
 
             long offset = fragment.Length - 18;
 
@@ -327,7 +340,9 @@ namespace PksUdp.Client
                 }
                 offset += fragment.Length - 14;
                 fragment.CreateChecksum();
-                _pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
+
+                _lastMessage.fragments.Add(fragment);
+                //_pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
             }
 
 
@@ -350,13 +365,13 @@ namespace PksUdp.Client
                 }
             }
             fragment.CreateChecksum();
-            _pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
+            _lastMessage.fragments.Add(fragment);
+            //_pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
         }
 
         private void SendFile(FileInfo info, uint fSize, long size, byte[] fileName, bool error)
         {
-            _lastMessage = new FileFragments(info.FullName, 1, fSize,
-                new PaketId());
+            _lastMessage = new FileFragments(info.FullName, new PaketId());
 
             var file = File.ReadAllBytes(info.FullName);
 
@@ -382,10 +397,9 @@ namespace PksUdp.Client
             }
 
             fragment.CreateChecksum();
-            if (error)
-                ++fragment[fragment.Length - 2];
 
-            _pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
+            _lastMessage.fragments.Add(fragment);
+            //_pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
         }
 
         private static void RozdelSpravuNaFragmenty(MessageFragments pksClientLastMessage, PksClient.SpravaNaOdoslanie sprava)
@@ -490,7 +504,7 @@ namespace PksUdp.Client
             var file = _lastMessage as FileFragments;
             if (file != null)
             {
-                ResendFileFragments(file, order);
+                ResendFileFragments(file, (int) order);
                 return;
             }
             var message = _lastMessage as MessageFragments;
@@ -508,31 +522,12 @@ namespace PksUdp.Client
             _pksClient.Socket.Client.Send(message.fragments[order]);
         }
 
-        private void ResendFileFragments(FileFragments file, uint order)
+        private void ResendFileFragments(FileFragments file, int order)
         {
             if (file.FragmentCount <= order)
                 return;
 
-            var info = new FileInfo(file.Path);
-
-            if (!info.Exists)
-            {
-                return;
-            }
-
-            var name = Path.GetFileName(info.FullName);
-            var fileName = Encoding.UTF8.GetBytes(name);
-            var size = info.Length + fileName.Length + 4;
-            var fSize = file.FragmentLength;
-
-            if (file.FragmentCount == 1)
-            {
-                SendFile(info, fSize, size, fileName, false);
-            }
-            else
-            {
-                
-            }
+            _pksClient.Socket.Client.Send(file.fragments[order]);
         }
 
         private static bool WrongProtocol(byte[] bytes)
