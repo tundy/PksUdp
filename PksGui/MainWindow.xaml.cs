@@ -98,9 +98,9 @@ namespace PksGui
         {
             Dispatcher.Invoke(() =>
             {
+                if (_lastStateServer) return;
                 Output.AppendTextAndScroll($"{DateTime.Now}: Prerušilo sa spojenie zo serverom{Environment.NewLine}");
-                if (!_lastStateServer)
-                    ResetControls();
+                ResetControls();
             });
         }
 
@@ -108,9 +108,8 @@ namespace PksGui
         {
             Dispatcher.Invoke(() =>
             {
+                if (_lastStateServer) return;
                 Output.AppendTextAndScroll($"{DateTime.Now}: Server nepotvrdil spojenie{Environment.NewLine}");
-                if (!_lastStateServer)
-                    ResetControls();
             });
         }
 
@@ -118,9 +117,9 @@ namespace PksGui
         {
             Dispatcher.Invoke(() =>
             {
+                if (_lastStateServer) return;
                 Output.AppendTextAndScroll($"{DateTime.Now}: {e.Message}{Environment.NewLine}");
-                if (!_lastStateServer)
-                    ResetControls();
+                ResetControls();
             });
         }
 
