@@ -314,7 +314,7 @@ namespace PksUdp.Client
                 {
                     if (i + offset < 4)
                     {
-                        fragment[Extensions.FragmentDatafIndex + i] = (byte)(fileName.Length << ((int)(3 - i + offset) * 8));
+                        fragment[Extensions.FragmentDatafIndex + i] = (byte)(fileName.Length << ((int)(3 - (i + offset)) * 8));
                     }
                     else if (i + offset < fileName.Length + 4)
                     {
