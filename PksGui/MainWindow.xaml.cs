@@ -51,7 +51,7 @@ namespace PksGui
         private void _pksServer_ServerDown(Exception e)
         {
             if (!_lastStateServer) return;
-            Output.AppendTextAndScroll($"Spadol server.{Environment.NewLine}{e}{Environment.NewLine}");
+            Output.AppendTextAndScroll($"Spadol server.{Environment.NewLine}{e.Message}{Environment.NewLine}");
             _pksServer.Close();
             ResetControls();
         }
