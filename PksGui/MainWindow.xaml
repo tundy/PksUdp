@@ -14,20 +14,20 @@
         </Grid.RowDefinitions>
         <WrapPanel Grid.Row="0">
             <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
-                <WrapPanel x:Name="PortPanel" x:FieldModifier="private" VerticalAlignment="Center">
+                <WrapPanel VerticalAlignment="Center">
                     <TextBlock Margin="5" Text="Tvoj port:"/>
                     <TextBox local:Masking.Mask="^[0-9]*$" x:Name="ThisPort" Margin="5" HorizontalContentAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" MaxLength="5" MinWidth="38"/>
                 </WrapPanel>
             </Border>
             <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
-                <WrapPanel x:Name="ControlsPanel" x:FieldModifier="private" VerticalAlignment="Center">
+                <WrapPanel VerticalAlignment="Center">
                     <Button Margin="5" x:Name="StartServerButton" x:FieldModifier="private" Content="Spusti server" VerticalContentAlignment="Center" Click="ServerStart_ButtonClick"/>
                     <Button Margin="5" x:Name="ConnectButton" x:FieldModifier="private" Content="Pripojit" VerticalContentAlignment="Center" Click="Connect_ButtonClick">
-                        <Button.ContextMenu>
+                        <!--Button.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Pripojit chybne"/>
                             </ContextMenu>
-                        </Button.ContextMenu>
+                        </-->
                     </Button>
                     <Button Margin="5" IsEnabled="False" x:Name="StopButton" x:FieldModifier="private" Content="Odpojit" VerticalContentAlignment="Center" Click="Disconnect_ButtonClick"/>
                 </WrapPanel>
@@ -67,7 +67,12 @@
                         <RowDefinition Height="auto"/>
                         <RowDefinition Height="auto"/>
                     </Grid.RowDefinitions>
-                    <CheckBox x:Name="ChybnyFragment" Grid.Row="1" Margin="5" Content="Chybny fragment" VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+                    <StackPanel Grid.Row="1" Orientation="Vertical" VerticalAlignment="Center" >
+                        <TextBlock Text="Chybne fragmenty:"/>
+                        <RadioButton x:Name="Ziadne" x:FieldModifier="private" GroupName="frag" Content="Ziadne chybne" IsChecked="True" VerticalContentAlignment="Center"/>
+                        <RadioButton x:Name="Prvy" x:FieldModifier="private" GroupName="frag" Content="Prvy chybny" VerticalContentAlignment="Center"/>
+                        <RadioButton x:Name="Vsetky" x:FieldModifier="private" GroupName="frag" Content="Vsetky chybne" VerticalContentAlignment="Center"/>
+                    </StackPanel>
                     <Button Grid.Row="2" Content="Odoslat spravu" Margin="5" VerticalAlignment="Center" VerticalContentAlignment="Center" Click="Button_Click_1"/>
                 </Grid>
                 <TextBox x:Name="Input" x:FieldModifier="private" AcceptsReturn="True" MaxHeight="150" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible" Margin="5" DockPanel.Dock="Left" VerticalAlignment="Stretch" VerticalContentAlignment="Top" SpellCheck.IsEnabled="True" PreviewKeyDown="Input_PreviewKeyDown"/>

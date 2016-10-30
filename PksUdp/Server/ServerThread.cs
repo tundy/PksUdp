@@ -97,11 +97,18 @@ namespace PksUdp.Server
             }
         }
 
+        private long _last = 0;
+
         private void _recieveTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             if (_lastFragmentType == Extensions.Type.Nothing) return;
-            if (_attemp++ < MaxRetry)
+            if (_attemp < MaxRetry)
             {
+                if (_last == _fragments.LongCount())
+                {
+                    ++_attemp;
+                }
+                _last = _fragments.LongCount();
                 AskForFragments();
                 _recieveTimer.Start();
                 return;
@@ -109,12 +116,16 @@ namespace PksUdp.Server
             PaketFailed((uint) _fragmentCount, _lastId, Client);
         }
 
+        private long? _lastValid;
+
         /// <summary>
         /// Znovu vyziadaj vsetky chybajuce fragmenty.
         /// </summary>
-        private async void AskForFragments()
+        private /*async*/ void AskForFragments()
         {
-            var sendList = new List<Task<int>>();
+            //var sendList = new List<Task<int>>();
+
+
 
             lock (_clientLock)
             {
@@ -127,27 +138,38 @@ namespace PksUdp.Server
                 {
                     if (_fragments.LongCount() == 0 || _fragmentCount == -1)
                     {
+                        _pksServer.OnBuffering(Client, null, 0, null);
                         var data = PksServer.RetryPaket();
-                        sendList.Add(_pksServer.Socket.SendAsync(data, data.Length, Client));
+                        //sendList.Add(_pksServer.Socket.SendAsync(data, data.Length, Client));
+                        _pksServer.Socket.Send(data, data.Length, Client);
                     }
                     else
                     {
+                        const int maxPerAsking = 5000;
+                        var asked = 0;
                         var missing = _fragmentCount - _fragments.LongCount();
-                        for (long i = 0; missing > 0 && i < _fragmentCount; i++)
+                        _pksServer.OnBuffering(Client, _lastId, (uint)_fragments.LongCount(), (uint)_fragmentCount);
+                        for (var i = _lastValid ?? 0; missing > 0 && i < _fragmentCount && asked < maxPerAsking; i++)
                         {
                             if (_fragments.ContainsKey((uint) i)) continue;
+                            if (_lastValid == null)
+                            {
+                                _lastValid = i;
+                            }
                             var data = PksServer.RetryFragment(_lastId, (uint)i);
-                            sendList.Add(_pksServer.Socket.SendAsync(data, data.Length, Client));
+                            //sendList.Add(_pksServer.Socket.SendAsync(data, data.Length, Client));
+                            _pksServer.Socket.SendAsync(data, data.Length, Client);
+                            ++asked;
                             --missing;
                         }
                     }
                 }
             }
 
-            foreach (var task in sendList)
+            /*foreach (var task in sendList)
             {
                 await task;
-            }
+            }*/
         }
 
         internal void Loop()
@@ -637,6 +659,8 @@ namespace PksUdp.Server
         /// </summary>
         private void ResetCounter()
         {
+            _lastValid = null;
+            _last = -1;
             _attemp = 0;
             _fragmentCount = -1;
             _fragmentLength = 0;

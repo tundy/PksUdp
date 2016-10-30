@@ -8,6 +8,13 @@ namespace PksUdp.Server
         public delegate void ReceivedFileHandler(IPEndPoint endPoint, FilePacket file);
         public delegate void ClientHandler(IPEndPoint endPoint);
 
+        public delegate void BufferHandler(IPEndPoint endpoint, PaketId id, uint loaded, uint? total);
+
+        public event BufferHandler Buffering;
+        internal virtual void OnBuffering(IPEndPoint endPoint, PaketId id, uint loaded, uint? total)
+        {
+            Buffering?.Invoke(endPoint, id, loaded, total);
+        }
 
         public event ReceivedMessageHandler ReceivedMessage;
         internal virtual void OnReceivedMessage(IPEndPoint endPoint, Message message)

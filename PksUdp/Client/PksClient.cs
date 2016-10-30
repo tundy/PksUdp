@@ -8,12 +8,18 @@ namespace PksUdp.Client
 {
     public partial class PksClient
     {
+        public enum Fragmenty
+        {
+            ZiadneChybne,
+            PrvyChybny,
+            VsetkyChybne
+        }
         internal abstract class NaOdoslanie
         {
             internal readonly int FragmentSize;
-            internal readonly bool Error;
+            internal readonly Fragmenty Error;
 
-            protected NaOdoslanie(int fragmentSize, bool error)
+            protected NaOdoslanie(int fragmentSize, Fragmenty error)
             {
                 FragmentSize = fragmentSize;
                 Error = error;
@@ -24,7 +30,7 @@ namespace PksUdp.Client
         {
             internal string Sprava;
 
-            public SpravaNaOdoslanie(string sprava, int fragmentSize, bool error) : base(fragmentSize, error)
+            public SpravaNaOdoslanie(string sprava, int fragmentSize, Fragmenty error) : base(fragmentSize, error)
             {
                 Sprava = sprava;
             }
@@ -34,7 +40,7 @@ namespace PksUdp.Client
         {
             internal readonly string Path;
 
-            public SuborNaOdoslanie(string path, int fragmentSize, bool error) : base(fragmentSize, error)
+            public SuborNaOdoslanie(string path, int fragmentSize, Fragmenty error) : base(fragmentSize, error)
             {
                 Path = path;
             }
@@ -44,7 +50,7 @@ namespace PksUdp.Client
         internal readonly Queue<NaOdoslanie> Poradovnik = new Queue<NaOdoslanie>();
         internal readonly object PoradovnikLock = new object();
 
-        public void SendMessage(string text, int fragmentSize, bool error)
+        public void SendMessage(string text, int fragmentSize, Fragmenty error)
         {
             if (fragmentSize < 20 || fragmentSize > 65470)
             {
@@ -56,7 +62,7 @@ namespace PksUdp.Client
             }
         }
 
-        public void SendFile(string path, int fragmentSize, bool error)
+        public void SendFile(string path, int fragmentSize, Fragmenty error)
         {
             if (fragmentSize < 20 || fragmentSize > 65470)
             {

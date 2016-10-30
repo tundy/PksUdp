@@ -36,6 +36,7 @@ namespace PksGui
             _pksServer.ClientTimedOut += PksServerClientTimedOud;
             _pksServer.ReceivedMessage += PksServerReceivedMessage;
             _pksServer.ReceivedFile += _pksServer_ReceivedFile;
+            _pksServer.Buffering += _pksServer_Buffering;
             _pksClient = new PksClient();
             _pksClient.ClientConnected += _pksClient_ClientConnected;
             _pksClient.ReceivedMessage += _pksClient_ReceivedMessage;
@@ -43,6 +44,16 @@ namespace PksGui
             _pksClient.SocketException += _pksClient_SocketException;
             _pksClient.NoServerResponse += _pksClient_NoServerResponse;
             _pksClient.ClientError += _pksClient_ClientError;
+        }
+
+        private void _pksServer_Buffering(IPEndPoint endpoint, PaketId id, uint loaded, uint? total)
+        {
+            Output.Dispatcher.Invoke(() =>
+            {
+                Output.AppendTextAndScroll(total == null
+                    ? $"{DateTime.Now}: Nepodarilo sa nacitat ani jeden fragment{Environment.NewLine}"
+                    : $"{DateTime.Now}: Mam zatial nacitanych {loaded} z {total.Value} fragmentov ({(loaded*100)/(total.Value)})%{Environment.NewLine}");
+            });
         }
 
         private void _pksClient_ReceivedFile(PaketId id, bool success)
@@ -311,7 +322,20 @@ namespace PksGui
                 return;
             }
 
-            _pksClient.SendMessage(Input.Text, size, ChybnyFragment.IsChecked == true);
+            PksClient.Fragmenty f;
+            if (Vsetky.IsChecked == true)
+            {
+                f = PksClient.Fragmenty.VsetkyChybne;
+            }
+            else if (Prvy.IsChecked == true)
+            {
+                f = PksClient.Fragmenty.PrvyChybny;
+            }
+            else
+            {
+                f = PksClient.Fragmenty.ZiadneChybne;
+            }
+            _pksClient.SendMessage(Input.Text, size, f);
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -364,7 +388,20 @@ namespace PksGui
                 return;
             }
 
-            _pksClient.SendFile(FilePath.Text, size, ChybnyFragment.IsChecked == true);
+            PksClient.Fragmenty f;
+            if (Vsetky.IsChecked == true)
+            {
+                f = PksClient.Fragmenty.VsetkyChybne;
+            }
+            else if (Prvy.IsChecked == true)
+            {
+                f = PksClient.Fragmenty.PrvyChybny;
+            }
+            else
+            {
+                f = PksClient.Fragmenty.ZiadneChybne;
+            }
+            _pksClient.SendFile(FilePath.Text, size, f);
         }
     }
 

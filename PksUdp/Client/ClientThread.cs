@@ -22,7 +22,7 @@ namespace PksUdp.Client
         /// <summary>
         /// Timer pre znovu vyziadanie fragmentov.
         /// </summary>
-        private readonly Timer _recieveTimer = new Timer {Interval = 3000, AutoReset = false };
+        private readonly Timer _recieveTimer = new Timer {Interval = 10000, AutoReset = false };
 
         private readonly Timer _pingTimer = new Timer {Interval = 30000, AutoReset = true};
 
@@ -210,13 +210,13 @@ namespace PksUdp.Client
             var odoslanie = odoslat as PksClient.SpravaNaOdoslanie;
             if (odoslanie != null)
             {
-
+                _recieveTimer.Stop();
                 _lastMessage = new MessageFragments(new PaketId());
                 RozdelSpravuNaFragmenty((MessageFragments)_lastMessage, odoslanie);
                 var prvy = true;
                 foreach (var fragment in _lastMessage.fragments)
                 {
-                    if (odoslanie.Error && prvy)
+                    if (odoslanie.Error == PksClient.Fragmenty.VsetkyChybne || (odoslanie.Error == PksClient.Fragmenty.PrvyChybny && prvy))
                     {
                         var temp = (byte[])fragment.Clone();
                         temp[temp.Length - 2]++;
@@ -243,17 +243,18 @@ namespace PksUdp.Client
                     var fSize = (uint)naOdoslanie.FragmentSize;
                     if (size + 10 <= fSize)
                     {
-                        SendFile(info, fSize, size, fileName, naOdoslanie.Error);
+                        SendFile(info, fSize, size, fileName);
                     }
                     else
                     {
-                        SendFileFragmented(info, fSize, size, fileName, naOdoslanie.Error);
+                        SendFileFragmented(info, fSize, size, fileName);
                     }
 
+                    _recieveTimer.Stop();
                     var prvy = true;
                     foreach (var fragment in _lastMessage.fragments)
                     {
-                        if (naOdoslanie.Error && prvy)
+                        if (naOdoslanie.Error == PksClient.Fragmenty.VsetkyChybne || (naOdoslanie.Error == PksClient.Fragmenty.PrvyChybny && prvy))
                         {
                             var temp = (byte[])fragment.Clone();
                             temp[temp.Length - 2]++;
@@ -268,7 +269,7 @@ namespace PksUdp.Client
             _recieveTimer.Start();
         }
 
-        private void SendFileFragmented(FileInfo info, uint fSize, long size, byte[] fileName, bool naOdoslanieError)
+        private void SendFileFragmented(FileInfo info, uint fSize, long size, byte[] fileName)
         {
             var id = new PaketId();
             var file = File.OpenRead(info.FullName); //File.ReadAllBytes(info.FullName);
@@ -369,7 +370,7 @@ namespace PksUdp.Client
             //_pksClient.Socket.Client.Send(fragment, fragment.Length, SocketFlags.None);
         }
 
-        private void SendFile(FileInfo info, uint fSize, long size, byte[] fileName, bool error)
+        private void SendFile(FileInfo info, uint fSize, long size, byte[] fileName)
         {
             _lastMessage = new FileFragments(info.FullName, new PaketId());
 
@@ -500,7 +501,14 @@ namespace PksUdp.Client
             if (bytes.Length < 14)
                 return;
 
-            var order = bytes.GetFragmentOrder();
+
+            var order = (int)bytes.GetFragmentOrder();
+
+            if (_lastMessage.FragmentCount <= order)
+                return;
+
+            _pksClient.Socket.Client.Send(_lastMessage.fragments[order]);
+            /*
             var file = _lastMessage as FileFragments;
             if (file != null)
             {
@@ -511,7 +519,7 @@ namespace PksUdp.Client
             if (message != null)
             {
                 ResendMessageFragments(message, (int) order);
-            }
+            }*/
         }
 
         private void ResendMessageFragments(MessageFragments message, int order)
