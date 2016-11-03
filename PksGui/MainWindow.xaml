@@ -49,6 +49,12 @@
             <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
                 <Button Margin="5" Content="Zmaž výstup" Click="Button_Click"/>
             </Border>
+            <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
+                <WrapPanel>
+                    <TextBlock Margin="5" Text="Počet fragmentov:" VerticalAlignment="Center"/>
+                    <TextBox Margin="5" VerticalAlignment="Center" MinWidth="20" IsReadOnly="True" HorizontalContentAlignment="Center" Text="0" x:Name="FragmentCount" x:FieldModifier="private"/>
+                </WrapPanel>
+            </Border>
         </WrapPanel>
         <Border Grid.Row="1" BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}">
             <TextBox x:Name="Output" IsReadOnly="True" HorizontalScrollBarVisibility="Auto" TextWrapping="Wrap" VerticalScrollBarVisibility="Visible">

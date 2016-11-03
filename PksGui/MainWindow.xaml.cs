@@ -33,6 +33,7 @@ namespace PksGui
             _pksServer.ReceivedFile += _pksServer_ReceivedFile;
             _pksServer.Buffering += _pksServer_Buffering;
             _pksServer.ServerDown += _pksServer_ServerDown;
+            _pksServer.FragmentRecieved += _pksServer_FragmentRecieved;
             _pksClient = new PksClient();
             _pksClient.ClientConnected += _pksClient_ClientConnected;
             _pksClient.ReceivedMessage += _pksClient_ReceivedMessage;
@@ -40,6 +41,18 @@ namespace PksGui
             _pksClient.SocketException += _pksClient_SocketException;
             _pksClient.NoServerResponse += _pksClient_NoServerResponse;
             _pksClient.ClientError += _pksClient_ClientError;
+        }
+
+        private ulong _count;
+
+        private void _pksServer_FragmentRecieved(IPEndPoint endPoint)
+        {
+            ++_count;
+            FragmentCount.Dispatcher.Invoke(
+                () =>
+                {
+                    FragmentCount.Text = _count.ToString();
+                });
         }
 
         ~MainWindow()

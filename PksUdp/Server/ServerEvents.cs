@@ -58,6 +58,13 @@ namespace PksUdp.Server
             ClientDisconnected?.Invoke(endPoint);
         }
 
+        public event ClientHandler FragmentRecieved;
+
+        internal virtual void OnFragmentRecieved(IPEndPoint endPoint)
+        {
+            FragmentRecieved?.Invoke(endPoint);
+        }
+
         public event ClientHandler ClientTimedOut;
 
         internal virtual void OnClientTimedOut(IPEndPoint endPoint)

@@ -189,6 +189,8 @@ namespace PksUdp.Server
 
                     var bytes = _pksServer.Socket.Receive(ref sender);
 
+                    _pksServer.OnFragmentRecieved(sender);
+
                     if (FilterClients(sender))
                         continue;
 
